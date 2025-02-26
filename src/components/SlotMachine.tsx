@@ -2,12 +2,12 @@
 import { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/use-toast";
-import { Cherry, Grape, Orange, Apple } from 'lucide-react';
+import { Cherry, Grape, Lemon, Apple } from 'lucide-react';
 
 const SYMBOLS = [
   { id: 1, component: Cherry, color: "#FF4136" },
   { id: 2, component: Grape, color: "#B10DC9" },
-  { id: 3, component: Orange, color: "#FF7F50" },
+  { id: 3, component: Lemon, color: "#FF7F50" },
   { id: 4, component: Apple, color: "#FF4136" },
 ];
 
