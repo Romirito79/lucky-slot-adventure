@@ -2,19 +2,21 @@
 import { useState, useEffect, useRef } from 'react';
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/use-toast";
-import { Cherry, Grape, Apple } from 'lucide-react';
+import { Cherry, Grape, Apple, Trophy } from 'lucide-react';
 
 const SYMBOLS = [
-  { id: 1, component: Cherry, color: "#FF4136" },
-  { id: 2, component: Grape, color: "#B10DC9" },
-  { id: 3, component: Cherry, color: "#FF7F50" },  // Changed from Lemon to Cherry with different color
-  { id: 4, component: Apple, color: "#FF4136" },
+  { id: 1, component: Cherry, color: "#FF4136", isJackpot: false },
+  { id: 2, component: Grape, color: "#B10DC9", isJackpot: false },
+  { id: 3, component: Cherry, color: "#FF7F50", isJackpot: false },
+  { id: 4, component: Apple, color: "#FF4136", isJackpot: false },
+  { id: 5, component: Trophy, color: "#FFD700", isJackpot: true }, // Jackpot symbol
 ];
 
 const INITIAL_CREDIT = 100;
 const MIN_BET = 0.5;
 const MAX_BET = 10;
-const JACKPOT_MULTIPLIER = 50; // Higher reward for jackpot
+const JACKPOT_MULTIPLIER = 50;
+const REGULAR_WIN_MULTIPLIER = 10;
 
 const SlotMachine = () => {
   const { toast } = useToast();
@@ -22,7 +24,6 @@ const SlotMachine = () => {
   const [credit, setCredit] = useState(INITIAL_CREDIT);
   const [bet, setBet] = useState(MIN_BET);
   const [isSpinning, setIsSpinning] = useState(false);
-  const [isJackpotMode, setIsJackpotMode] = useState(false);
   const [reels, setReels] = useState([
     [SYMBOLS[0], SYMBOLS[1], SYMBOLS[2]],
     [SYMBOLS[1], SYMBOLS[2], SYMBOLS[3]],
@@ -30,7 +31,6 @@ const SlotMachine = () => {
   ]);
 
   useEffect(() => {
-    // Create audio element for spinning sound
     spinSoundRef.current = new Audio('https://assets.mixkit.co/active_storage/sfx/2003/2003-preview.mp3');
     spinSoundRef.current.load();
   }, []);
@@ -56,7 +56,6 @@ const SlotMachine = () => {
     setCredit((prev) => prev - bet);
     playSpinSound();
 
-    // Simulate reel spinning
     const spinDuration = 2000;
     const spinInterval = 100;
     let spins = 0;
@@ -79,44 +78,27 @@ const SlotMachine = () => {
   };
 
   const checkWin = () => {
-    // Simple win check - middle row matching
-    const middleRow = reels.map((reel) => reel[1].id);
-    const isWin = middleRow.every((id) => id === middleRow[0]);
-
+    // Check middle row for matches
+    const middleRow = reels.map((reel) => reel[1]);
+    const isWin = middleRow.every((symbol) => symbol.id === middleRow[0].id);
+    
     if (isWin) {
-      const multiplier = isJackpotMode ? JACKPOT_MULTIPLIER : 10;
+      const isJackpotWin = middleRow[0].isJackpot;
+      const multiplier = isJackpotWin ? JACKPOT_MULTIPLIER : REGULAR_WIN_MULTIPLIER;
       const winAmount = bet * multiplier;
+      
       setCredit((prev) => prev + winAmount);
       toast({
-        title: isJackpotMode ? "JACKPOT WIN! 🎉" : "Winner!",
+        title: isJackpotWin ? "🎰 JACKPOT WIN! 🎰" : "Winner!",
         description: `You won $${winAmount.toFixed(2)}!`,
-        className: isJackpotMode ? "bg-slot-purple text-white" : "bg-slot-gold text-black",
+        className: isJackpotWin ? "bg-slot-purple text-white" : "bg-slot-gold text-black",
       });
     }
-    setIsJackpotMode(false); // Reset jackpot mode after spin
   };
 
   const adjustBet = (amount: number) => {
     const newBet = Math.max(MIN_BET, Math.min(MAX_BET, bet + amount));
     setBet(newBet);
-  };
-
-  const activateJackpot = () => {
-    if (credit < bet * 2) {
-      toast({
-        title: "Insufficient Credit",
-        description: "Jackpot mode requires double your current bet.",
-        variant: "destructive",
-      });
-      return;
-    }
-    setIsJackpotMode(true);
-    setBet((prevBet) => prevBet * 2);
-    toast({
-      title: "Jackpot Mode Activated! 🎰",
-      description: "Higher stakes, bigger rewards!",
-      className: "bg-slot-purple text-white",
-    });
   };
 
   return (
@@ -136,9 +118,13 @@ const SlotMachine = () => {
                     key={`${reelIndex}-${symbolIndex}`}
                     className={`p-4 bg-white rounded-lg shadow transition-transform ${
                       isSpinning ? "animate-spin-slow" : ""
-                    }`}
+                    } ${symbol.isJackpot ? "animate-pulse bg-yellow-100" : ""}`}
                   >
-                    <Symbol size={48} color={symbol.color} />
+                    <Symbol 
+                      size={48} 
+                      color={symbol.color}
+                      className={symbol.isJackpot ? "animate-shine" : ""}
+                    />
                   </div>
                 );
               })}
@@ -175,18 +161,9 @@ const SlotMachine = () => {
             Max Bet
           </Button>
           <Button
-            onClick={activateJackpot}
-            disabled={isSpinning || isJackpotMode}
-            className="bg-slot-gold hover:bg-yellow-600 text-black font-bold animate-pulse"
-          >
-            JACKPOT 🎰
-          </Button>
-          <Button
             onClick={spin}
             disabled={isSpinning}
-            className={`hover:bg-red-700 text-white w-32 h-12 text-lg font-bold animate-glow ${
-              isJackpotMode ? "bg-slot-purple" : "bg-slot-red"
-            }`}
+            className="bg-slot-red hover:bg-red-700 text-white w-32 h-12 text-lg font-bold animate-glow"
           >
             {isSpinning ? "Spinning..." : "SPIN"}
           </Button>
