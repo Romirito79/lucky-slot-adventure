@@ -2,14 +2,22 @@
 import { useState, useEffect, useRef } from 'react';
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/use-toast";
-import { Cherry, Grape, Apple, Trophy } from 'lucide-react';
+import { Cherry, Grape, Apple } from 'lucide-react';
 
 const SYMBOLS = [
   { id: 1, component: Cherry, color: "#FF4136", isJackpot: false, name: "Pi", multiplier: 10 },
   { id: 2, component: Grape, color: "#B10DC9", isJackpot: false, name: "★", multiplier: 5 },
   { id: 3, component: Cherry, color: "#FF7F50", isJackpot: false, name: "💎", multiplier: 2 },
   { id: 4, component: Apple, color: "#FF4136", isJackpot: false, name: "Pi", multiplier: 10 },
-  { id: 5, component: Trophy, color: "#FFD700", isJackpot: true, name: "J", multiplier: 0 }, // Jackpot symbol
+  { 
+    id: 5, 
+    component: null, // We won't use Lucide icon for jackpot anymore
+    imageUrl: "/lovable-uploads/0be039a6-eda9-4895-a827-77320de477d4.png", 
+    color: "#FFD700", 
+    isJackpot: true, 
+    name: "J", 
+    multiplier: 0 
+  }, // Custom jackpot symbol
 ];
 
 const INITIAL_CREDIT = 100;
@@ -229,6 +237,22 @@ const SlotMachine = () => {
     setBet(newBet);
   };
 
+  // Helper function to render the correct symbol representation
+  const renderSymbol = (symbol: any) => {
+    if (symbol.imageUrl) {
+      return (
+        <img 
+          src={symbol.imageUrl} 
+          alt={symbol.name}
+          className="w-16 h-16 object-contain"
+        />
+      );
+    } else {
+      const Symbol = symbol.component;
+      return <Symbol size={48} color={symbol.color} />;
+    }
+  };
+
   return (
     <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-br from-slot-orange to-slot-gold p-4">
       <div className="bg-white rounded-lg shadow-2xl p-6 w-full max-w-2xl">
@@ -250,24 +274,17 @@ const SlotMachine = () => {
         <div className="grid grid-cols-3 gap-2 mb-6 bg-gray-100 p-4 rounded-lg">
           {reels.map((reel, reelIndex) => (
             <div key={reelIndex} className="flex flex-col items-center space-y-4 overflow-hidden">
-              {reel.map((symbol, symbolIndex) => {
-                const Symbol = symbol.component;
-                return (
-                  <div
-                    key={`${reelIndex}-${symbolIndex}`}
-                    className={`p-4 bg-white rounded-lg shadow transition-transform ${
-                      !reelStates[reelIndex] ? "animate-spin-slow" : ""
-                    } ${symbol.isJackpot ? "animate-pulse bg-yellow-100" : ""}`}
-                  >
-                    <Symbol 
-                      size={48} 
-                      color={symbol.color}
-                      className={symbol.isJackpot ? "animate-shine" : ""}
-                    />
-                    <div className="text-center mt-1 font-bold">{symbol.name}</div>
-                  </div>
-                );
-              })}
+              {reel.map((symbol, symbolIndex) => (
+                <div
+                  key={`${reelIndex}-${symbolIndex}`}
+                  className={`p-4 bg-white rounded-lg shadow transition-transform ${
+                    !reelStates[reelIndex] ? "animate-spin-slow" : ""
+                  } ${symbol.isJackpot ? "animate-pulse bg-yellow-100" : ""}`}
+                >
+                  {renderSymbol(symbol)}
+                  <div className="text-center mt-1 font-bold">{symbol.name}</div>
+                </div>
+              ))}
             </div>
           ))}
         </div>
