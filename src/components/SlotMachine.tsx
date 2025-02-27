@@ -5,18 +5,18 @@ import { useToast } from "@/components/ui/use-toast";
 import { Cherry, Grape, Apple, Trophy } from 'lucide-react';
 
 const SYMBOLS = [
-  { id: 1, component: Cherry, color: "#FF4136", isJackpot: false },
-  { id: 2, component: Grape, color: "#B10DC9", isJackpot: false },
-  { id: 3, component: Cherry, color: "#FF7F50", isJackpot: false },
-  { id: 4, component: Apple, color: "#FF4136", isJackpot: false },
-  { id: 5, component: Trophy, color: "#FFD700", isJackpot: true }, // Jackpot symbol
+  { id: 1, component: Cherry, color: "#FF4136", isJackpot: false, name: "Pi", multiplier: 10 },
+  { id: 2, component: Grape, color: "#B10DC9", isJackpot: false, name: "★", multiplier: 5 },
+  { id: 3, component: Cherry, color: "#FF7F50", isJackpot: false, name: "💎", multiplier: 2 },
+  { id: 4, component: Apple, color: "#FF4136", isJackpot: false, name: "Pi", multiplier: 10 },
+  { id: 5, component: Trophy, color: "#FFD700", isJackpot: true, name: "J", multiplier: 0 }, // Jackpot symbol
 ];
 
 const INITIAL_CREDIT = 100;
 const MIN_BET = 0.5;
 const MAX_BET = 10;
-const JACKPOT_MULTIPLIER = 50;
-const REGULAR_WIN_MULTIPLIER = 10;
+const HOUSE_EDGE = 0.05; // 5% house edge
+const INITIAL_JACKPOT = 50;
 
 const SlotMachine = () => {
   const { toast } = useToast();
@@ -25,7 +25,7 @@ const SlotMachine = () => {
   const [credit, setCredit] = useState(INITIAL_CREDIT);
   const [bet, setBet] = useState(MIN_BET);
   const [isSpinning, setIsSpinning] = useState(false);
-  const [jackpotAmount, setJackpotAmount] = useState(50); // Starting jackpot amount
+  const [jackpotAmount, setJackpotAmount] = useState(INITIAL_JACKPOT); // Starting jackpot amount
   const [reels, setReels] = useState([
     [SYMBOLS[0], SYMBOLS[1], SYMBOLS[2]],
     [SYMBOLS[1], SYMBOLS[2], SYMBOLS[3]],
@@ -36,6 +36,7 @@ const SlotMachine = () => {
   // For provably fair results
   const [seed, setSeed] = useState("");
   const [spinResults, setSpinResults] = useState<number[][]>([]);
+  const [message, setMessage] = useState<string>("");
 
   useEffect(() => {
     // Load sound effects
@@ -110,6 +111,9 @@ const SlotMachine = () => {
       return;
     }
 
+    // Clear previous message
+    setMessage("");
+
     // 1. Deduct bet from balance
     setCredit((prev) => prev - bet);
     
@@ -126,7 +130,7 @@ const SlotMachine = () => {
     const outcomes = generateOutcomes();
     setSpinResults(outcomes);
     
-    // 5. Schedule staggered stops for reels
+    // 5. Schedule staggered stops for reels with longer delays
     setTimeout(() => {
       // Stop first reel
       setReelStates(prev => [true, prev[1], prev[2]]);
@@ -180,28 +184,40 @@ const SlotMachine = () => {
     const isWin = middleRow.every((symbol) => symbol.id === middleRow[0].id);
     
     if (isWin) {
-      const isJackpotWin = middleRow[0].isJackpot;
+      const winningSymbol = middleRow[0];
+      const isJackpotWin = winningSymbol.isJackpot;
       
       if (isJackpotWin) {
-        // Jackpot win - award the jackpot amount
-        setCredit(prev => prev + jackpotAmount);
+        // Jackpot win - award the jackpot amount with house edge
+        const winAmount = jackpotAmount * (1 - HOUSE_EDGE);
+        setCredit(prev => prev + winAmount);
+        
+        setMessage(`Jackpot! +${winAmount.toFixed(2)} Pi`);
         toast({
           title: "🎰 JACKPOT WIN! 🎰",
-          description: `You won the jackpot of $${jackpotAmount.toFixed(2)}!`,
+          description: `You won ${winAmount.toFixed(2)} Pi from the jackpot of ${jackpotAmount.toFixed(2)} Pi!`,
           className: "bg-slot-purple text-white",
         });
+        
         // Reset jackpot after win
-        setJackpotAmount(50);
+        setJackpotAmount(INITIAL_JACKPOT);
       } else {
-        // Regular win
-        const winAmount = bet * REGULAR_WIN_MULTIPLIER;
+        // Regular win based on symbol multiplier
+        const multiplier = winningSymbol.multiplier;
+        const rawWinAmount = bet * multiplier;
+        const winAmount = rawWinAmount * (1 - HOUSE_EDGE); // Apply house edge
+        
         setCredit(prev => prev + winAmount);
+        
+        setMessage(`Winner! +${winAmount.toFixed(2)} Pi`);
         toast({
           title: "Winner!",
-          description: `You won $${winAmount.toFixed(2)}!`,
+          description: `You won ${winAmount.toFixed(2)} Pi! (${multiplier}x your bet)`,
           className: "bg-slot-gold text-black",
         });
       }
+    } else {
+      setMessage("Try again!");
     }
   };
 
@@ -215,12 +231,18 @@ const SlotMachine = () => {
       <div className="bg-white rounded-lg shadow-2xl p-6 w-full max-w-2xl">
         <div className="flex justify-between mb-4">
           <div className="text-2xl font-bold text-center bg-slot-red text-white py-2 px-4 rounded-md animate-shine flex-1 mr-2">
-            Credit: ${credit.toFixed(2)}
+            Pi Balance: {credit.toFixed(2)} Pi
           </div>
           <div className="text-2xl font-bold text-center bg-slot-purple text-white py-2 px-4 rounded-md animate-pulse flex-1 ml-2">
-            Jackpot: ${jackpotAmount.toFixed(2)}
+            Jackpot: {jackpotAmount.toFixed(2)} Pi
           </div>
         </div>
+
+        {message && (
+          <div className="text-xl font-bold text-center mb-4 py-2 px-4 rounded-md bg-gray-100">
+            {message}
+          </div>
+        )}
 
         <div className="grid grid-cols-3 gap-2 mb-6 bg-gray-100 p-4 rounded-lg">
           {reels.map((reel, reelIndex) => (
@@ -239,6 +261,7 @@ const SlotMachine = () => {
                       color={symbol.color}
                       className={symbol.isJackpot ? "animate-shine" : ""}
                     />
+                    <div className="text-center mt-1 font-bold">{symbol.name}</div>
                   </div>
                 );
               })}
@@ -255,7 +278,7 @@ const SlotMachine = () => {
           >
             - {MIN_BET}
           </Button>
-          <div className="text-xl font-bold">Bet: ${bet.toFixed(2)}</div>
+          <div className="text-xl font-bold">Bet: {bet.toFixed(2)} Pi</div>
           <Button
             variant="outline"
             onClick={() => adjustBet(MIN_BET)}
