@@ -2,44 +2,14 @@
 import { useState, useEffect, useRef } from 'react';
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/use-toast";
+import { Cherry, Grape, Apple, Trophy } from 'lucide-react';
 
-// Custom symbol images for the slot machine
 const SYMBOLS = [
-  { 
-    id: 1, 
-    imageUrl: "/lovable-uploads/d28665b4-bc3f-46ac-8446-8db7be9e73e9.png", 
-    isJackpot: false, 
-    name: "Pi", 
-    multiplier: 10 
-  },
-  { 
-    id: 2, 
-    imageUrl: "/lovable-uploads/d3e1b6b5-113b-45e6-a90a-fb0129dec067.png", 
-    isJackpot: false, 
-    name: "3.14", 
-    multiplier: 5 
-  },
-  { 
-    id: 3, 
-    imageUrl: "/lovable-uploads/c1349e90-60c9-4296-b16c-e03ae26ace85.png", 
-    isJackpot: false, 
-    name: "GCV", 
-    multiplier: 2 
-  },
-  { 
-    id: 4, 
-    imageUrl: "/lovable-uploads/6db61628-30c2-4746-a6d2-4195b148beb7.png", 
-    isJackpot: false, 
-    name: "RGCV", 
-    multiplier: 5 
-  },
-  { 
-    id: 5, 
-    imageUrl: "/lovable-uploads/f110e1fa-74a6-4ab2-ba53-1ec6dd8e9309.png", 
-    isJackpot: true, 
-    name: "π", 
-    multiplier: 0 // Jackpot symbol
-  },
+  { id: 1, component: Cherry, color: "#FF4136", isJackpot: false, name: "Pi", multiplier: 10 },
+  { id: 2, component: Grape, color: "#B10DC9", isJackpot: false, name: "★", multiplier: 5 },
+  { id: 3, component: Cherry, color: "#FF7F50", isJackpot: false, name: "💎", multiplier: 2 },
+  { id: 4, component: Apple, color: "#FF4136", isJackpot: false, name: "Pi", multiplier: 10 },
+  { id: 5, component: Trophy, color: "#FFD700", isJackpot: true, name: "J", multiplier: 0 }, // Jackpot symbol
 ];
 
 const INITIAL_CREDIT = 100;
@@ -280,20 +250,24 @@ const SlotMachine = () => {
         <div className="grid grid-cols-3 gap-2 mb-6 bg-gray-100 p-4 rounded-lg">
           {reels.map((reel, reelIndex) => (
             <div key={reelIndex} className="flex flex-col items-center space-y-4 overflow-hidden">
-              {reel.map((symbol, symbolIndex) => (
-                <div
-                  key={`${reelIndex}-${symbolIndex}`}
-                  className={`p-4 bg-white rounded-lg shadow transition-transform ${
-                    !reelStates[reelIndex] ? "animate-spin-slow" : ""
-                  } ${symbol.isJackpot ? "animate-pulse bg-yellow-100" : ""}`}
-                >
-                  <img 
-                    src={symbol.imageUrl} 
-                    alt={symbol.name}
-                    className={`w-16 h-16 object-contain ${symbol.isJackpot ? "animate-shine" : ""}`}
-                  />
-                </div>
-              ))}
+              {reel.map((symbol, symbolIndex) => {
+                const Symbol = symbol.component;
+                return (
+                  <div
+                    key={`${reelIndex}-${symbolIndex}`}
+                    className={`p-4 bg-white rounded-lg shadow transition-transform ${
+                      !reelStates[reelIndex] ? "animate-spin-slow" : ""
+                    } ${symbol.isJackpot ? "animate-pulse bg-yellow-100" : ""}`}
+                  >
+                    <Symbol 
+                      size={48} 
+                      color={symbol.color}
+                      className={symbol.isJackpot ? "animate-shine" : ""}
+                    />
+                    <div className="text-center mt-1 font-bold">{symbol.name}</div>
+                  </div>
+                );
+              })}
             </div>
           ))}
         </div>
