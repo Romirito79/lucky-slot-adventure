@@ -15,7 +15,8 @@ const SYMBOLS = [
 const INITIAL_CREDIT = 100;
 const MIN_BET = 0.5;
 const MAX_BET = 10;
-const HOUSE_EDGE = 0.05; // 5% house edge
+const HOUSE_EDGE = 0.05; // 5% house edge on bets
+const JACKPOT_HOUSE_EDGE = 0.05; // Additional 5% house edge on jackpot
 const INITIAL_JACKPOT = 50;
 
 const SlotMachine = () => {
@@ -188,8 +189,10 @@ const SlotMachine = () => {
       const isJackpotWin = winningSymbol.isJackpot;
       
       if (isJackpotWin) {
-        // Jackpot win - award the jackpot amount with house edge
-        const winAmount = jackpotAmount * (1 - HOUSE_EDGE);
+        // Jackpot win - award the jackpot amount with combined house edge
+        // 5% house edge on bets + 5% house edge on jackpot = 10% total reduction
+        const totalHouseEdge = HOUSE_EDGE + JACKPOT_HOUSE_EDGE;
+        const winAmount = jackpotAmount * (1 - totalHouseEdge);
         setCredit(prev => prev + winAmount);
         
         setMessage(`Jackpot! +${winAmount.toFixed(2)} Pi`);
@@ -205,7 +208,7 @@ const SlotMachine = () => {
         // Regular win based on symbol multiplier
         const multiplier = winningSymbol.multiplier;
         const rawWinAmount = bet * multiplier;
-        const winAmount = rawWinAmount * (1 - HOUSE_EDGE); // Apply house edge
+        const winAmount = rawWinAmount * (1 - HOUSE_EDGE); // Apply only regular house edge
         
         setCredit(prev => prev + winAmount);
         
