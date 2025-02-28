@@ -1,8 +1,7 @@
-
 import { useState, useEffect, useRef } from 'react';
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/use-toast";
-import sha256 from 'crypto-js/sha256';
+import sha256 from 'crypto-js/sha256'; // Ensure: npm install crypto-js
 
 // Define the Symbol type interface to ensure consistent types
 interface SlotSymbol {
@@ -24,28 +23,28 @@ const SYMBOLS: SlotSymbol[] = [
   },
   { 
     id: 2, 
-    imageUrl: "/images/3.14.png",
+    imageUrl: "/images/3.14.png", 
     isJackpot: false, 
     name: "3.14", 
     multiplier: 1 
   },
   { 
     id: 3, 
-    imageUrl: "/images/gcv.png",
+    imageUrl: "/images/gcv.png", 
     isJackpot: false, 
     name: "GCV", 
     multiplier: 10 
   },
   { 
     id: 4, 
-    imageUrl: "/images/rgcv.png",
+    imageUrl: "/images/rgcv.png", 
     isJackpot: false, 
     name: "RGCV", 
     multiplier: 5 
   },
   { 
     id: 5, 
-    imageUrl: "/images/Jackpot.png",
+    imageUrl: "/images/Jackpot.png", 
     isJackpot: true, 
     name: "π", 
     multiplier: 0 
@@ -56,9 +55,9 @@ const SYMBOLS: SlotSymbol[] = [
 const FALLBACK_SYMBOL: SlotSymbol = { 
   id: 0, 
   name: "?", 
-  imageUrl: "/placeholder.svg",
-  isJackpot: false,
-  multiplier: 0
+  imageUrl: "/placeholder.svg", 
+  isJackpot: false, 
+  multiplier: 0 
 };
 
 const INITIAL_CREDIT = 100;
@@ -81,34 +80,43 @@ const SlotMachine = () => {
   ]);
   const [reelStates, setReelStates] = useState([true, true, true]); // All reels initially stopped
   const [seed, setSeed] = useState("");
-  const [spinResults, setSpinResults] = useState<number[][]>([]);
+  const [spinResults, setSpinResults] = useState([]);
   const [message, setMessage] = useState("");
-  const [lastJackpotWin, setLastJackpotWin] = useState<Date | null>(null);
-  
+  const [lastJackpotWin, setLastJackpotWin] = useState(null); // Track last jackpot win
+  const [houseEarnings, setHouseEarnings] = useState(0); // Track house earnings
+  const [jackpotContributions, setJackpotContributions] = useState(0); // Track jackpot contributions
+
   // Audio references
-  const buttonSoundRef = useRef<HTMLAudioElement | null>(null);
-  const spinningSoundRef = useRef<HTMLAudioElement | null>(null);
-  const jackpotSoundRef = useRef<HTMLAudioElement | null>(null);
+  const buttonSoundRef = useRef(null);
+  const spinningSoundRef = useRef(null);
+  const jackpotSoundRef = useRef(null);
 
   useEffect(() => {
-    // Initialize audio elements
-    buttonSoundRef.current = new Audio('/music/button.flac');
+    // Initialize audio elements (local files)
+    buttonSoundRef.current = new Audio('/music/button.mp3');
     spinningSoundRef.current = new Audio('/music/spinning.mp3');
     jackpotSoundRef.current = new Audio('/music/jackpot.wav');
+
+    // Preload audio
+    [buttonSoundRef, spinningSoundRef, jackpotSoundRef].forEach(ref => {
+      if (ref.current) ref.current.load();
+    });
 
     // Generate initial seed and check jackpot reset
     generateNewSeed();
     checkJackpotReset();
-    
-    // Preload audio
-    buttonSoundRef.current.load();
-    spinningSoundRef.current.load();
-    jackpotSoundRef.current.load();
-    
-    // Cleanup function
+
+    // Persist jackpot win across sessions
+    const savedJackpotWin = localStorage.getItem('lastJackpotWin');
+    if (savedJackpotWin) {
+      setLastJackpotWin(new Date(savedJackpotWin));
+    }
+
+    // Cleanup audio on unmount
     return () => {
       if (spinningSoundRef.current) {
         spinningSoundRef.current.pause();
+        spinningSoundRef.current.currentTime = 0;
       }
     };
   }, []);
@@ -166,10 +174,10 @@ const SlotMachine = () => {
     const hash = sha256(combinedSeed).toString();
 
     // Generate 3x3 outcomes (full grid for visuals, use middle row for wins)
-    const results: number[][] = [];
+    const results = [];
     
     for (let reel = 0; reel < 3; reel++) {
-      const reelResult: number[] = [];
+      const reelResult = [];
       for (let pos = 0; pos < 3; pos++) {
         const hashSlice = hash.slice((reel * 3 + pos) * 8, (reel * 3 + pos + 1) * 8);
         const symbolIndex = parseInt(hashSlice, 16) % SYMBOLS.length;
@@ -201,9 +209,12 @@ const SlotMachine = () => {
     // 1. Deduct bet from balance
     setCredit((prev) => prev - bet);
     
-    // 2. Add 5% of bet to jackpot and 5% to house (implicitly handled in win logic)
+    // 2. Add 5% of bet to jackpot and 5% to house
     const jackpotContribution = bet * JACKPOT_POOL; // 5% to jackpot
+    const houseContribution = bet * HOUSE_EDGE; // 5% to house
     setJackpotAmount(prev => prev + jackpotContribution);
+    setHouseEarnings(prev => prev + houseContribution);
+    setJackpotContributions(prev => prev + jackpotContribution);
     
     // 3. Start spinning animation and sound
     setIsSpinning(true);
@@ -274,6 +285,7 @@ const SlotMachine = () => {
           });
           setJackpotAmount(INITIAL_JACKPOT); // Reset jackpot
           setLastJackpotWin(new Date()); // Record jackpot win
+          localStorage.setItem('lastJackpotWin', new Date().toISOString()); // Persist jackpot win
         } else {
           setMessage("Jackpot already won today! Try again tomorrow.");
           toast({
@@ -301,13 +313,24 @@ const SlotMachine = () => {
     }
   };
 
-  const adjustBet = (amount: number) => {
+  const adjustBet = (amount) => {
     const newBet = Math.max(MIN_BET, Math.min(MAX_BET, bet + amount));
     setBet(newBet);
+    playButtonSound(); // Add sound for bet adjustments
+  };
+
+  const setMinBet = () => {
+    setBet(MIN_BET);
+    playButtonSound(); // Add sound for Min Bet
+  };
+
+  const setMaxBet = () => {
+    setBet(MAX_BET);
+    playButtonSound(); // Add sound for Max Bet
   };
 
   // Handle image error with proper typing
-  const handleImageError = (e: React.SyntheticEvent<HTMLImageElement, Event>) => {
+  const handleImageError = (e) => {
     const imgElement = e.currentTarget;
     imgElement.onerror = null;
     imgElement.src = '/placeholder.svg';
@@ -360,21 +383,25 @@ const SlotMachine = () => {
         <div className="flex justify-between items-center mb-4">
           <Button
             variant="outline"
-            onClick={() => adjustBet(-MIN_BET)}
-            disabled={bet <= MIN_BET || isSpinning}
+            onClick={setMinBet}
+            disabled={isSpinning}
             className="w-24"
           >
-            - {MIN_BET}
+            Min Bet
           </Button>
           <div className="text-xl font-bold">Bet: {bet.toFixed(2)} Pi</div>
           <Button
             variant="outline"
-            onClick={() => adjustBet(MIN_BET)}
-            disabled={bet >= MAX_BET || isSpinning}
+            onClick={setMaxBet}
+            disabled={isSpinning}
             className="w-24"
           >
-            + {MIN_BET}
+            Max Bet
           </Button>
+        </div>
+
+        <div className="text-sm text-gray-500 mt-2">
+          Seed: {seed} | Hash: {spinResults.length > 0 ? sha256(seed + new Date().getTime().toString()).toString() : "N/A"}
         </div>
 
         <div className="flex justify-center space-x-4">
@@ -392,6 +419,10 @@ const SlotMachine = () => {
           >
             {isSpinning ? "Spinning..." : "SPIN"}
           </Button>
+        </div>
+
+        <div className="text-sm text-gray-500 mt-2">
+          House: {houseEarnings.toFixed(2)} Pi, Jackpot Pool: {jackpotContributions.toFixed(2)} Pi
         </div>
       </div>
     </div>
