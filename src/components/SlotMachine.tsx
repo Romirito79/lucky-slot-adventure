@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/use-toast";
 import sha256 from 'crypto-js/sha256';
@@ -17,35 +17,35 @@ interface SlotSymbol {
 const SYMBOLS: SlotSymbol[] = [
   { 
     id: 1, 
-    imageUrl: "https://via.placeholder.com/64", // Fallback—update to "/lovable-uploads/d28665b4-bc3f-46ac-8446-8db7be9e73e9.png" 
+    imageUrl: "/images/pi-coin.png", 
     isJackpot: false, 
     name: "Pi", 
     multiplier: 2 
   },
   { 
     id: 2, 
-    imageUrl: "https://via.placeholder.com/64", // Fallback—update to "/lovable-uploads/d3e1b6b5-113b-45e6-a90a-fb0129dec067.png"
+    imageUrl: "/images/3.14.png",
     isJackpot: false, 
     name: "3.14", 
     multiplier: 1 
   },
   { 
     id: 3, 
-    imageUrl: "https://via.placeholder.com/64", // Fallback—update to "/lovable-uploads/c1349e90-60c9-4296-b16c-e03ae26ace85.png"
+    imageUrl: "/images/gcv.png",
     isJackpot: false, 
     name: "GCV", 
     multiplier: 10 
   },
   { 
     id: 4, 
-    imageUrl: "https://via.placeholder.com/64", // Fallback—update to "/lovable-uploads/6db61628-30c2-4746-a6d2-4195b148beb7.png"
+    imageUrl: "/images/rgcv.png",
     isJackpot: false, 
     name: "RGCV", 
     multiplier: 5 
   },
   { 
     id: 5, 
-    imageUrl: "https://via.placeholder.com/64", // Fallback—update to "/lovable-uploads/f110e1fa-74a6-4ab2-ba53-1ec6dd8e9309.png"
+    imageUrl: "/images/Jackpot.png",
     isJackpot: true, 
     name: "π", 
     multiplier: 0 
@@ -56,7 +56,7 @@ const SYMBOLS: SlotSymbol[] = [
 const FALLBACK_SYMBOL: SlotSymbol = { 
   id: 0, 
   name: "?", 
-  imageUrl: "https://via.placeholder.com/64",
+  imageUrl: "/placeholder.svg",
   isJackpot: false,
   multiplier: 0
 };
@@ -84,12 +84,62 @@ const SlotMachine = () => {
   const [spinResults, setSpinResults] = useState<number[][]>([]);
   const [message, setMessage] = useState("");
   const [lastJackpotWin, setLastJackpotWin] = useState<Date | null>(null);
+  
+  // Audio references
+  const buttonSoundRef = useRef<HTMLAudioElement | null>(null);
+  const spinningSoundRef = useRef<HTMLAudioElement | null>(null);
+  const jackpotSoundRef = useRef<HTMLAudioElement | null>(null);
 
   useEffect(() => {
+    // Initialize audio elements
+    buttonSoundRef.current = new Audio('/music/button.flac');
+    spinningSoundRef.current = new Audio('/music/spinning.mp3');
+    jackpotSoundRef.current = new Audio('/music/jackpot.wav');
+
     // Generate initial seed and check jackpot reset
     generateNewSeed();
     checkJackpotReset();
+    
+    // Preload audio
+    buttonSoundRef.current.load();
+    spinningSoundRef.current.load();
+    jackpotSoundRef.current.load();
+    
+    // Cleanup function
+    return () => {
+      if (spinningSoundRef.current) {
+        spinningSoundRef.current.pause();
+      }
+    };
   }, []);
+
+  const playButtonSound = () => {
+    if (buttonSoundRef.current) {
+      buttonSoundRef.current.currentTime = 0;
+      buttonSoundRef.current.play().catch(e => console.log("Button sound failed:", e));
+    }
+  };
+
+  const playSpinningSound = () => {
+    if (spinningSoundRef.current) {
+      spinningSoundRef.current.currentTime = 0;
+      spinningSoundRef.current.play().catch(e => console.log("Spinning sound failed:", e));
+    }
+  };
+
+  const stopSpinningSound = () => {
+    if (spinningSoundRef.current) {
+      spinningSoundRef.current.pause();
+      spinningSoundRef.current.currentTime = 0;
+    }
+  };
+
+  const playJackpotSound = () => {
+    if (jackpotSoundRef.current) {
+      jackpotSoundRef.current.currentTime = 0;
+      jackpotSoundRef.current.play().catch(e => console.log("Jackpot sound failed:", e));
+    }
+  };
 
   const checkJackpotReset = () => {
     // Reset jackpot if last win was yesterday or earlier (midnight UTC)
@@ -142,6 +192,9 @@ const SlotMachine = () => {
       return;
     }
 
+    // Play button sound
+    playButtonSound();
+
     // Clear previous message
     setMessage("");
 
@@ -152,9 +205,10 @@ const SlotMachine = () => {
     const jackpotContribution = bet * JACKPOT_POOL; // 5% to jackpot
     setJackpotAmount(prev => prev + jackpotContribution);
     
-    // 3. Start spinning animation
+    // 3. Start spinning animation and sound
     setIsSpinning(true);
     setReelStates([false, false, false]); // All reels spinning
+    playSpinningSound();
     
     // 4. Generate provably fair outcomes
     const outcomes = generateOutcomes();
@@ -174,13 +228,14 @@ const SlotMachine = () => {
       // Stop all reels simultaneously
       setReelStates([true, true, true]);
       
-      // End spinning state and check for wins
+      // End spinning state, stop sound, and check for wins
       setIsSpinning(false);
+      stopSpinningSound();
       checkWin();
       
       // Generate new seed for next spin
       generateNewSeed();
-    }, 1000); // All reels stop after 1 second
+    }, 2000); // All reels stop after 2 seconds of spinning
   };
 
   const checkWin = () => {
@@ -196,6 +251,10 @@ const SlotMachine = () => {
           const winAmount = jackpotAmount; // Full jackpot
           setCredit(prev => prev + winAmount);
           setMessage(`Jackpot! +${winAmount.toFixed(2)} Pi`);
+          
+          // Play jackpot sound
+          playJackpotSound();
+          
           toast({
             title: "🎰 JACKPOT WIN! 🎰",
             description: `You won ${winAmount.toFixed(2)} Pi from the jackpot!`,
@@ -239,7 +298,7 @@ const SlotMachine = () => {
   const handleImageError = (e: React.SyntheticEvent<HTMLImageElement, Event>) => {
     const imgElement = e.currentTarget;
     imgElement.onerror = null;
-    imgElement.src = 'https://via.placeholder.com/64';
+    imgElement.src = '/placeholder.svg';
   };
 
   return (
@@ -267,7 +326,7 @@ const SlotMachine = () => {
                 <div
                   key={`${reelIndex}-${symbolIndex}`}
                   className={`p-4 bg-white rounded-lg shadow ${
-                    !reelStates[reelIndex] ? "animate-pulse" : ""
+                    !reelStates[reelIndex] ? "animate-spin" : ""
                   } ${symbol.isJackpot ? "animate-pulse bg-yellow-100" : ""} ${
                     symbolIndex === 1 ? "border-4 border-yellow-500" : "" // Golden box for middle row
                   }`}

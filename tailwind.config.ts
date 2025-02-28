@@ -65,6 +65,10 @@ export default {
           "0%": { transform: "translateY(0)" },
           "100%": { transform: "translateY(-100%)" },
         },
+        spin: {
+          "0%": { transform: "rotate(0deg)" },
+          "100%": { transform: "rotate(360deg)" }
+        },
         shine: {
           "0%": { backgroundPosition: "200% 0" },
           "100%": { backgroundPosition: "-200% 0" },
@@ -76,6 +80,7 @@ export default {
       },
       animation: {
         "spin-slow": "spin-slow 0.5s linear infinite",
+        "spin": "spin 0.6s linear infinite",
         shine: "shine 8s linear infinite",
         glow: "glow 2s ease-in-out infinite",
       },
