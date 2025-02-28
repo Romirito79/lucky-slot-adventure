@@ -3,44 +3,46 @@ import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/use-toast";
 import sha256 from 'crypto-js/sha256'; // Ensure: npm install crypto-js
 
+
 // Custom symbol images for the slot machine (placeholders with fallbacks)
 const SYMBOLS = [
-  { 
-    id: 1, 
+  {
+    id: 1,
     imageUrl: "https://via.placeholder.com/64", // Fallback—update to "/lovable-uploads/d28665b4-bc3f-46ac-8446-8db7be9e73e9.png"
-    isJackpot: false, 
-    name: "Pi", 
-    multiplier: 2 
+    isJackpot: false,
+    name: "Pi",
+    multiplier: 2
   },
-  { 
-    id: 2, 
+  {
+    id: 2,
     imageUrl: "https://via.placeholder.com/64", // Fallback—update to "/lovable-uploads/d3e1b6b5-113b-45e6-a90a-fb0129dec067.png"
-    isJackpot: false, 
-    name: "3.14", 
-    multiplier: 1 
+    isJackpot: false,
+    name: "3.14",
+    multiplier: 1
   },
-  { 
-    id: 3, 
+  {
+    id: 3,
     imageUrl: "https://via.placeholder.com/64", // Fallback—update to "/lovable-uploads/c1349e90-60c9-4296-b16c-e03ae26ace85.png"
-    isJackpot: false, 
-    name: "GCV", 
-    multiplier: 10 
+    isJackpot: false,
+    name: "GCV",
+    multiplier: 10
   },
-  { 
-    id: 4, 
+  {
+    id: 4,
     imageUrl: "https://via.placeholder.com/64", // Fallback—update to "/lovable-uploads/6db61628-30c2-4746-a6d2-4195b148beb7.png"
-    isJackpot: false, 
-    name: "RGCV", 
-    multiplier: 5 
+    isJackpot: false,
+    name: "RGCV",
+    multiplier: 5
   },
-  { 
-    id: 5, 
+  {
+    id: 5,
     imageUrl: "https://via.placeholder.com/64", // Fallback—update to "/lovable-uploads/f110e1fa-74a6-4ab2-ba53-1ec6dd8e9309.png"
-    isJackpot: true, 
-    name: "π", 
-    multiplier: 0 
+    isJackpot: true,
+    name: "π",
+    multiplier: 0
   },
 ];
+
 
 const INITIAL_CREDIT = 100;
 const MIN_BET = 0.5;
@@ -48,6 +50,7 @@ const MAX_BET = 10;
 const HOUSE_EDGE = 0.05; // 5% to house
 const JACKPOT_POOL = 0.05; // 5% to jackpot
 const INITIAL_JACKPOT = 50;
+
 
 const SlotMachine = () => {
   const { toast } = useToast();
@@ -68,29 +71,32 @@ const SlotMachine = () => {
   const [message, setMessage] = useState("");
   const [lastJackpotWin, setLastJackpotWin] = useState(null); // Remove TypeScript-specific type, default to null
 
+
   useEffect(() => {
     // Load sound effects (local files for reliability)
     spinSoundRef.current = new Audio('/spin.wav');
     stopSoundRef.current = new Audio('/stop.wav');
-    
+   
     spinSoundRef.current.load();
     stopSoundRef.current.load();
-    
+   
     // Generate initial seed and check jackpot reset
     generateNewSeed();
     checkJackpotReset();
   }, []);
 
+
   const checkJackpotReset = () => {
     // Reset jackpot if last win was yesterday or earlier (midnight UTC)
     const now = new Date();
     const todayStart = new Date(now.setUTCHours(0, 0, 0, 0));
-    
+   
     if (lastJackpotWin instanceof Date && lastJackpotWin < todayStart) {
       setLastJackpotWin(null); // Reset jackpot win tracking for new day
       setJackpotAmount(INITIAL_JACKPOT); // Reset jackpot to initial amount
     }
   };
+
 
   const generateNewSeed = () => {
     // Generate a cryptographically secure seed for provably fair spins
@@ -99,12 +105,14 @@ const SlotMachine = () => {
     console.log("New seed generated:", randomSeed);
   };
 
+
   const playSpinSound = () => {
     if (spinSoundRef.current) {
       spinSoundRef.current.currentTime = 0;
       spinSoundRef.current.play().catch(e => console.log("Audio play failed:", e));
     }
   };
+
 
   const playStopSound = () => {
     if (stopSoundRef.current) {
@@ -113,15 +121,17 @@ const SlotMachine = () => {
     }
   };
 
+
   const generateOutcomes = () => {
     // Use SHA-256 for provably fair outcomes
     const timestamp = new Date().getTime();
     const combinedSeed = seed + timestamp.toString();
     const hash = sha256(combinedSeed).toString();
 
+
     // Generate 3x3 outcomes (full grid for visuals, use middle row for wins)
     const results = [];
-    
+   
     for (let reel = 0; reel < 3; reel++) {
       const reelResult = [];
       for (let pos = 0; pos < 3; pos++) {
@@ -131,10 +141,11 @@ const SlotMachine = () => {
       }
       results.push(reelResult);
     }
-    
+   
     console.log("Spin result (provably fair):", results);
     return results;
   };
+
 
   const spin = () => {
     if (credit < bet) {
@@ -146,67 +157,69 @@ const SlotMachine = () => {
       return;
     }
 
+
     // Clear previous message
     setMessage("");
 
+
     // 1. Deduct bet from balance
     setCredit((prev) => prev - bet);
-    
+   
     // 2. Add 5% of bet to jackpot and 5% to house (implicitly handled in win logic)
     const jackpotContribution = bet * JACKPOT_POOL; // 5% to jackpot
     const houseContribution = bet * HOUSE_EDGE; // 5% to house
     setJackpotAmount(prev => prev + jackpotContribution);
-    
+   
     // 3. Start spinning animation and play sound
     setIsSpinning(true);
     setReelStates([false, false, false]); // All reels spinning
     playSpinSound();
-    
+   
     // 4. Generate provably fair outcomes
     const outcomes = generateOutcomes();
     setSpinResults(outcomes);
-    
+   
     // 5. Schedule staggered stops for reels with longer delays
     setTimeout(() => {
       // Stop first reel
       setReelStates(prev => [true, prev[1], prev[2]]);
       playStopSound();
-      
+     
       // Apply outcome to first reel (full 3x3 for visuals, middle for logic)
       setReels(prev => {
         const updatedReels = [...prev];
         updatedReels[0] = outcomes[0].map(idx => SYMBOLS[idx] || { name: "?", imageUrl: "https://via.placeholder.com/64" });
         return updatedReels;
       });
-      
+     
       setTimeout(() => {
         // Stop second reel
         setReelStates(prev => [prev[0], true, prev[2]]);
         playStopSound();
-        
+       
         // Apply outcome to second reel
         setReels(prev => {
           const updatedReels = [...prev];
           updatedReels[1] = outcomes[1].map(idx => SYMBOLS[idx] || { name: "?", imageUrl: "https://via.placeholder.com/64" });
           return updatedReels;
         });
-        
+       
         setTimeout(() => {
           // Stop third reel
           setReelStates(prev => [prev[0], prev[1], true]);
           playStopSound();
-          
+         
           // Apply outcome to third reel
           setReels(prev => {
             const updatedReels = [...prev];
             updatedReels[2] = outcomes[2].map(idx => SYMBOLS[idx] || { name: "?", imageUrl: "https://via.placeholder.com/64" });
             return updatedReels;
           });
-          
+         
           // End spinning state and check for wins
           setIsSpinning(false);
           checkWin();
-          
+         
           // Generate new seed for next spin
           generateNewSeed();
         }, 400); // Third reel stops 400ms after second
@@ -214,10 +227,12 @@ const SlotMachine = () => {
     }, 800); // First reel stops after 800ms
   };
 
+
   const checkWin = () => {
     // Check if all three middle tiles (golden box: reels[0][1], reels[1][1], reels[2][1]) match
     const middleRow = [reels[0][1].name, reels[1][1].name, reels[2][1].name];
     const allMatch = middleRow.every(symbol => symbol === middleRow[0]);
+
 
     if (allMatch) {
       const winningSymbol = SYMBOLS.find(s => s.name === middleRow[0]);
@@ -261,10 +276,12 @@ const SlotMachine = () => {
     }
   };
 
+
   const adjustBet = (amount) => {
     const newBet = Math.max(MIN_BET, Math.min(MAX_BET, bet + amount));
     setBet(newBet);
   };
+
 
   return (
     <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-br from-slot-orange to-slot-gold p-4">
@@ -278,11 +295,13 @@ const SlotMachine = () => {
           </div>
         </div>
 
+
         {message && (
           <div className="text-xl font-bold text-center mb-4 py-2 px-4 rounded-md bg-gray-100">
             {message}
           </div>
         )}
+
 
         <div className="grid grid-cols-3 gap-2 mb-6 bg-gray-100 p-4 rounded-lg">
           {reels.map((reel, reelIndex) => (
@@ -296,8 +315,8 @@ const SlotMachine = () => {
                     symbolIndex === 1 ? "border-4 border-yellow-500" : "" // Golden box for middle row
                   }`}
                 >
-                  <img 
-                    src={symbol.imageUrl} 
+                  <img
+                    src={symbol.imageUrl}
                     alt={symbol.name}
                     onError={(e) => { e.target.src = 'https://via.placeholder.com/64'; }} // Fallback for missing images
                     className={`w-16 h-16 object-contain ${symbol.isJackpot ? "animate-shine" : ""}`}
@@ -307,6 +326,7 @@ const SlotMachine = () => {
             </div>
           ))}
         </div>
+
 
         <div className="flex justify-between items-center mb-4">
           <Button
@@ -328,6 +348,7 @@ const SlotMachine = () => {
           </Button>
         </div>
 
+
         <div className="flex justify-center space-x-4">
           <Button
             onClick={() => setBet(MAX_BET)}
@@ -348,5 +369,6 @@ const SlotMachine = () => {
     </div>
   );
 };
+
 
 export default SlotMachine;
