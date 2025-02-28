@@ -214,28 +214,40 @@ const SlotMachine = () => {
     const outcomes = generateOutcomes();
     setSpinResults(outcomes);
     
-    // 5. Stop all reels at once after delay (simplified animation)
+    // 5. Sequential stopping of reels
     setTimeout(() => {
-      // Apply outcomes to all reels simultaneously
-      setReels(prev => {
-        const updatedReels = [...prev];
-        for (let i = 0; i < 3; i++) {
-          updatedReels[i] = outcomes[i].map(idx => SYMBOLS[idx] || FALLBACK_SYMBOL);
-        }
-        return updatedReels;
-      });
+      // Stop first reel after 800ms
+      setReelStates(prev => [true, prev[1], prev[2]]);
       
-      // Stop all reels simultaneously
-      setReelStates([true, true, true]);
-      
-      // End spinning state, stop sound, and check for wins
-      setIsSpinning(false);
-      stopSpinningSound();
-      checkWin();
-      
-      // Generate new seed for next spin
-      generateNewSeed();
-    }, 2000); // All reels stop after 2 seconds of spinning
+      setTimeout(() => {
+        // Stop second reel after 1200ms
+        setReelStates(prev => [prev[0], true, prev[2]]);
+        
+        setTimeout(() => {
+          // Stop third reel after 1600ms
+          setReelStates(prev => [prev[0], prev[1], true]);
+          
+          // Apply final outcomes to reels
+          setReels(prev => {
+            const updatedReels = [...prev];
+            for (let i = 0; i < 3; i++) {
+              updatedReels[i] = outcomes[i].map(idx => SYMBOLS[idx] || FALLBACK_SYMBOL);
+            }
+            return updatedReels;
+          });
+          
+          // End spinning state and sound
+          setIsSpinning(false);
+          stopSpinningSound();
+          
+          // Check for wins and set message
+          checkWin();
+          
+          // Generate new seed for next spin
+          generateNewSeed();
+        }, 400); // 400ms after second reel (1600ms total)
+      }, 400); // 400ms after first reel (1200ms total)
+    }, 800); // 800ms after spin start
   };
 
   const checkWin = () => {
@@ -321,24 +333,26 @@ const SlotMachine = () => {
 
         <div className="grid grid-cols-3 gap-2 mb-6 bg-gray-100 p-4 rounded-lg">
           {reels.map((reel, reelIndex) => (
-            <div key={reelIndex} className="flex flex-col items-center space-y-4 overflow-hidden">
-              {reel.map((symbol, symbolIndex) => (
-                <div
-                  key={`${reelIndex}-${symbolIndex}`}
-                  className={`p-4 bg-white rounded-lg shadow ${
-                    !reelStates[reelIndex] ? "animate-spin" : ""
-                  } ${symbol.isJackpot ? "animate-pulse bg-yellow-100" : ""} ${
-                    symbolIndex === 1 ? "border-4 border-yellow-500" : "" // Golden box for middle row
-                  }`}
-                >
-                  <img 
-                    src={symbol.imageUrl} 
-                    alt={symbol.name}
-                    onError={handleImageError}
-                    className={`w-16 h-16 object-contain ${symbol.isJackpot ? "animate-shine" : ""}`}
-                  />
-                </div>
-              ))}
+            <div key={reelIndex} className="flex flex-col items-center space-y-4 overflow-hidden h-72 relative">
+              <div className={`flex flex-col items-center space-y-4 ${!reelStates[reelIndex] ? "animate-spin-slow" : ""}`}>
+                {reel.map((symbol, symbolIndex) => (
+                  <div
+                    key={`${reelIndex}-${symbolIndex}`}
+                    className={`p-4 bg-white rounded-lg shadow ${
+                      symbol.isJackpot ? "animate-pulse bg-yellow-100" : ""
+                    } ${
+                      symbolIndex === 1 ? "border-4 border-yellow-500" : "" // Golden box for middle row
+                    }`}
+                  >
+                    <img 
+                      src={symbol.imageUrl} 
+                      alt={symbol.name}
+                      onError={handleImageError}
+                      className={`w-16 h-16 object-contain ${symbol.isJackpot ? "animate-shine" : ""}`}
+                    />
+                  </div>
+                ))}
+              </div>
             </div>
           ))}
         </div>
