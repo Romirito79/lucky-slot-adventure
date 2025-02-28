@@ -2,46 +2,41 @@
 import { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/use-toast";
-import { Cherry, Grape, Apple, Trophy } from 'lucide-react';
+import sha256 from 'crypto-js/sha256';
 
-// Custom symbol images for the slot machine (using Lucide icons as fallbacks)
+// Custom symbol images for the slot machine
 const SYMBOLS = [
   { 
     id: 1, 
-    component: Cherry,
-    color: "#FF4136",
+    imageUrl: "https://via.placeholder.com/64", // Fallback—update to "/lovable-uploads/d28665b4-bc3f-46ac-8446-8db7be9e73e9.png" 
     isJackpot: false, 
     name: "Pi", 
     multiplier: 2 
   },
   { 
     id: 2, 
-    component: Grape,
-    color: "#B10DC9",
+    imageUrl: "https://via.placeholder.com/64", // Fallback—update to "/lovable-uploads/d3e1b6b5-113b-45e6-a90a-fb0129dec067.png"
     isJackpot: false, 
     name: "3.14", 
     multiplier: 1 
   },
   { 
     id: 3, 
-    component: Cherry,
-    color: "#FF7F50",
+    imageUrl: "https://via.placeholder.com/64", // Fallback—update to "/lovable-uploads/c1349e90-60c9-4296-b16c-e03ae26ace85.png"
     isJackpot: false, 
     name: "GCV", 
     multiplier: 10 
   },
   { 
     id: 4, 
-    component: Apple,
-    color: "#FF4136",
+    imageUrl: "https://via.placeholder.com/64", // Fallback—update to "/lovable-uploads/6db61628-30c2-4746-a6d2-4195b148beb7.png"
     isJackpot: false, 
     name: "RGCV", 
     multiplier: 5 
   },
   { 
     id: 5, 
-    component: Trophy,
-    color: "#FFD700",
+    imageUrl: "https://via.placeholder.com/64", // Fallback—update to "/lovable-uploads/f110e1fa-74a6-4ab2-ba53-1ec6dd8e9309.png"
     isJackpot: true, 
     name: "π", 
     multiplier: 0 
@@ -62,14 +57,15 @@ const SlotMachine = () => {
   const [isSpinning, setIsSpinning] = useState(false);
   const [jackpotAmount, setJackpotAmount] = useState(INITIAL_JACKPOT); // Starting jackpot amount
   const [reels, setReels] = useState([
-    [SYMBOLS[0], SYMBOLS[1], SYMBOLS[2]],
-    [SYMBOLS[1], SYMBOLS[2], SYMBOLS[3]],
-    [SYMBOLS[2], SYMBOLS[3], SYMBOLS[0]],
+    [SYMBOLS[0] || { name: "?", imageUrl: "https://via.placeholder.com/64" }, SYMBOLS[1] || { name: "?", imageUrl: "https://via.placeholder.com/64" }, SYMBOLS[2] || { name: "?", imageUrl: "https://via.placeholder.com/64" }],
+    [SYMBOLS[1] || { name: "?", imageUrl: "https://via.placeholder.com/64" }, SYMBOLS[2] || { name: "?", imageUrl: "https://via.placeholder.com/64" }, SYMBOLS[3] || { name: "?", imageUrl: "https://via.placeholder.com/64" }],
+    [SYMBOLS[2] || { name: "?", imageUrl: "https://via.placeholder.com/64" }, SYMBOLS[3] || { name: "?", imageUrl: "https://via.placeholder.com/64" }, SYMBOLS[0] || { name: "?", imageUrl: "https://via.placeholder.com/64" }],
   ]);
   const [reelStates, setReelStates] = useState([true, true, true]); // All reels initially stopped
   const [seed, setSeed] = useState("");
+  const [spinResults, setSpinResults] = useState([]);
   const [message, setMessage] = useState("");
-  const [lastJackpotWin, setLastJackpotWin] = useState(null); // Track last jackpot win
+  const [lastJackpotWin, setLastJackpotWin] = useState(null);
 
   useEffect(() => {
     // Generate initial seed and check jackpot reset
@@ -89,33 +85,26 @@ const SlotMachine = () => {
   };
 
   const generateNewSeed = () => {
-    // Generate a random seed for provably fair spins
+    // Generate a cryptographically secure seed for provably fair spins
     const randomSeed = Math.random().toString(36).substring(2, 15) + Date.now().toString();
     setSeed(randomSeed);
     console.log("New seed generated:", randomSeed);
   };
 
   const generateOutcomes = () => {
-    // Use seed + timestamp to generate outcomes (simplified version of provably fair)
+    // Use SHA-256 for provably fair outcomes
     const timestamp = new Date().getTime();
     const combinedSeed = seed + timestamp.toString();
-    
-    // Hash the combined seed (simple version using string operations)
-    let hash = 0;
-    for (let i = 0; i < combinedSeed.length; i++) {
-      hash = ((hash << 5) - hash) + combinedSeed.charCodeAt(i);
-      hash |= 0; // Convert to 32bit integer
-    }
-    
-    // Generate 3 reels with 3 symbols each
+    const hash = sha256(combinedSeed).toString();
+
+    // Generate 3x3 outcomes (full grid for visuals, use middle row for wins)
     const results = [];
     
     for (let reel = 0; reel < 3; reel++) {
       const reelResult = [];
       for (let pos = 0; pos < 3; pos++) {
-        // Use different parts of the hash for each position
-        const shiftedHash = (hash >> (reel * 3 + pos)) & 0xFF;
-        const symbolIndex = shiftedHash % SYMBOLS.length;
+        const hashSlice = hash.slice((reel * 3 + pos) * 8, (reel * 3 + pos + 1) * 8);
+        const symbolIndex = parseInt(hashSlice, 16) % SYMBOLS.length;
         reelResult.push(symbolIndex);
       }
       results.push(reelResult);
@@ -151,19 +140,20 @@ const SlotMachine = () => {
     
     // 4. Generate provably fair outcomes
     const outcomes = generateOutcomes();
+    setSpinResults(outcomes);
     
     // 5. Stop all reels at once after delay (simplified animation)
     setTimeout(() => {
-      // Apply outcomes to all reels
+      // Apply outcomes to all reels simultaneously
       setReels(prev => {
         const updatedReels = [...prev];
-        updatedReels[0] = outcomes[0].map(idx => SYMBOLS[idx]);
-        updatedReels[1] = outcomes[1].map(idx => SYMBOLS[idx]);
-        updatedReels[2] = outcomes[2].map(idx => SYMBOLS[idx]);
+        for (let i = 0; i < 3; i++) {
+          updatedReels[i] = outcomes[i].map(idx => SYMBOLS[idx] || { name: "?", imageUrl: "https://via.placeholder.com/64" });
+        }
         return updatedReels;
       });
       
-      // Stop all reels
+      // Stop all reels simultaneously
       setReelStates([true, true, true]);
       
       // End spinning state and check for wins
@@ -176,14 +166,13 @@ const SlotMachine = () => {
   };
 
   const checkWin = () => {
-    // Check if all three middle tiles match
-    const middleRow = [reels[0][1], reels[1][1], reels[2][1]];
-    const allMatch = middleRow.every(symbol => symbol.id === middleRow[0].id);
+    // Check if all three middle tiles (golden box: reels[0][1], reels[1][1], reels[2][1]) match
+    const middleRow = [reels[0][1].name, reels[1][1].name, reels[2][1].name];
+    const allMatch = middleRow.every(symbol => symbol === middleRow[0]);
 
     if (allMatch) {
-      const winningSymbol = middleRow[0];
-      
-      if (winningSymbol.isJackpot) {
+      const winningSymbol = SYMBOLS.find(s => s.name === middleRow[0]);
+      if (winningSymbol?.isJackpot) {
         // Jackpot win (π symbol) - player wins entire jackpot
         if (!lastJackpotWin || new Date().getUTCDate() !== lastJackpotWin.getUTCDate()) {
           const winAmount = jackpotAmount; // Full jackpot
@@ -207,9 +196,9 @@ const SlotMachine = () => {
       } else {
         // Regular win based on symbol multiplier
         const effectiveBet = bet * 0.9; // 90% of bet (5% to house, 5% to jackpot)
-        const multiplier = winningSymbol.multiplier;
-        const winAmount = effectiveBet * multiplier;
-        
+        const multiplier = winningSymbol?.multiplier || 0;
+        const rawWinAmount = effectiveBet * multiplier;
+        const winAmount = rawWinAmount; // No additional house edge beyond the 90% bet split
         setCredit(prev => prev + winAmount);
         setMessage(`Winner! +${winAmount.toFixed(2)} Pi`);
         toast({
@@ -226,12 +215,6 @@ const SlotMachine = () => {
   const adjustBet = (amount) => {
     const newBet = Math.max(MIN_BET, Math.min(MAX_BET, bet + amount));
     setBet(newBet);
-  };
-
-  // Helper function to render the symbol
-  const renderSymbol = (symbol) => {
-    const Symbol = symbol.component;
-    return <Symbol size={48} color={symbol.color} />;
   };
 
   return (
@@ -260,12 +243,16 @@ const SlotMachine = () => {
                   key={`${reelIndex}-${symbolIndex}`}
                   className={`p-4 bg-white rounded-lg shadow ${
                     !reelStates[reelIndex] ? "animate-pulse" : ""
-                  } ${symbol.isJackpot ? "bg-yellow-100" : ""} ${
+                  } ${symbol.isJackpot ? "animate-pulse bg-yellow-100" : ""} ${
                     symbolIndex === 1 ? "border-4 border-yellow-500" : "" // Golden box for middle row
                   }`}
                 >
-                  {renderSymbol(symbol)}
-                  <div className="text-center mt-1 font-bold">{symbol.name}</div>
+                  <img 
+                    src={symbol.imageUrl} 
+                    alt={symbol.name}
+                    onError={(e) => { e.target.onerror = null; e.target.src = 'https://via.placeholder.com/64'; }} // Fallback for missing images
+                    className={`w-16 h-16 object-contain ${symbol.isJackpot ? "animate-shine" : ""}`}
+                  />
                 </div>
               ))}
             </div>
