@@ -23,28 +23,28 @@ const SYMBOLS: SlotSymbol[] = [
   },
   { 
     id: 2, 
-    imageUrl: "/images/3.14.png", 
+    imageUrl: "/images/3.14.png",
     isJackpot: false, 
     name: "3.14", 
     multiplier: 1 
   },
   { 
     id: 3, 
-    imageUrl: "/images/gcv.png", 
+    imageUrl: "/images/gcv.png",
     isJackpot: false, 
     name: "GCV", 
     multiplier: 10 
   },
   { 
     id: 4, 
-    imageUrl: "/images/rgcv.png", 
+    imageUrl: "/images/rgcv.png",
     isJackpot: false, 
     name: "RGCV", 
     multiplier: 5 
   },
   { 
     id: 5, 
-    imageUrl: "/images/Jackpot.png", 
+    imageUrl: "/images/Jackpot.png",
     isJackpot: true, 
     name: "π", 
     multiplier: 0 
@@ -55,9 +55,9 @@ const SYMBOLS: SlotSymbol[] = [
 const FALLBACK_SYMBOL: SlotSymbol = { 
   id: 0, 
   name: "?", 
-  imageUrl: "/placeholder.svg", 
-  isJackpot: false, 
-  multiplier: 0 
+  imageUrl: "/placeholder.svg",
+  isJackpot: false,
+  multiplier: 0
 };
 
 const INITIAL_CREDIT = 100;
@@ -78,22 +78,22 @@ const SlotMachine = () => {
     [SYMBOLS[1] || FALLBACK_SYMBOL, SYMBOLS[2] || FALLBACK_SYMBOL, SYMBOLS[3] || FALLBACK_SYMBOL],
     [SYMBOLS[2] || FALLBACK_SYMBOL, SYMBOLS[3] || FALLBACK_SYMBOL, SYMBOLS[0] || FALLBACK_SYMBOL],
   ]);
-  const [reelStates, setReelStates] = useState([true, true, true]); // All reels initially stopped
+  const [reelStates, setReelStates] = useState([false, true, true]); // First reel starts spinning, others wait
   const [seed, setSeed] = useState("");
   const [spinResults, setSpinResults] = useState([]);
-  const [message, setMessage] = useState("");
+  const [message, setMessage] = useState("Try Again!"); // Persistently visible, defaults to "Try Again!"
   const [lastJackpotWin, setLastJackpotWin] = useState(null); // Track last jackpot win
   const [houseEarnings, setHouseEarnings] = useState(0); // Track house earnings
   const [jackpotContributions, setJackpotContributions] = useState(0); // Track jackpot contributions
 
-  // Audio references
+  // Audio references (unchanged from your original)
   const buttonSoundRef = useRef(null);
   const spinningSoundRef = useRef(null);
   const jackpotSoundRef = useRef(null);
 
   useEffect(() => {
-    // Initialize audio elements (local files)
-    buttonSoundRef.current = new Audio('/music/button.mp3');
+    // Initialize audio elements (exact paths from your code)
+    buttonSoundRef.current = new Audio('/music/button.flac');
     spinningSoundRef.current = new Audio('/music/spinning.mp3');
     jackpotSoundRef.current = new Audio('/music/jackpot.wav');
 
@@ -200,7 +200,7 @@ const SlotMachine = () => {
       return;
     }
 
-    // Play button sound
+    // Play button sound immediately on Spin click
     playButtonSound();
 
     // Clear previous message
@@ -216,34 +216,40 @@ const SlotMachine = () => {
     setHouseEarnings(prev => prev + houseContribution);
     setJackpotContributions(prev => prev + jackpotContribution);
     
-    // 3. Start spinning animation and sound
+    // 3. Start spinning animation and sound for first reel
     setIsSpinning(true);
-    setReelStates([false, false, false]); // All reels spinning
+    setReelStates([false, true, true]); // Start only first reel spinning
     playSpinningSound();
     
     // 4. Generate provably fair outcomes
     const outcomes = generateOutcomes();
     setSpinResults(outcomes);
     
-    // 5. Sequential stopping of reels
+    // 5. Sequential stopping of reels with longer delays and slowing effect
     setTimeout(() => {
-      // Stop first reel after 800ms
-      setReelStates(prev => [true, prev[1], prev[2]]);
-      
+      // Stop first reel after 2 seconds, slow down before stopping
+      setReelStates(prev => [true, false, true]); // First stops, second starts
+      setReels(prev => {
+        const updatedReels = [...prev];
+        updatedReels[0] = outcomes[0].map(idx => SYMBOLS[idx] || FALLBACK_SYMBOL);
+        return updatedReels;
+      });
+
       setTimeout(() => {
-        // Stop second reel after 1200ms
-        setReelStates(prev => [prev[0], true, prev[2]]);
-        
+        // Stop second reel after 4 seconds (2 more seconds), slow down before stopping
+        setReelStates(prev => [true, true, false]); // Second stops, third starts
+        setReels(prev => {
+          const updatedReels = [...prev];
+          updatedReels[1] = outcomes[1].map(idx => SYMBOLS[idx] || FALLBACK_SYMBOL);
+          return updatedReels;
+        });
+
         setTimeout(() => {
-          // Stop third reel after 1600ms
-          setReelStates(prev => [prev[0], prev[1], true]);
-          
-          // Apply final outcomes to reels
+          // Stop third reel after 6 seconds (2 more seconds), slow down before stopping
+          setReelStates(prev => [true, true, true]); // Third stops
           setReels(prev => {
             const updatedReels = [...prev];
-            for (let i = 0; i < 3; i++) {
-              updatedReels[i] = outcomes[i].map(idx => SYMBOLS[idx] || FALLBACK_SYMBOL);
-            }
+            updatedReels[2] = outcomes[2].map(idx => SYMBOLS[idx] || FALLBACK_SYMBOL);
             return updatedReels;
           });
           
@@ -256,9 +262,9 @@ const SlotMachine = () => {
           
           // Generate new seed for next spin
           generateNewSeed();
-        }, 400); // 400ms after second reel (1600ms total)
-      }, 400); // 400ms after first reel (1200ms total)
-    }, 800); // 800ms after spin start
+        }, 2000); // 2 seconds for third reel to stop (total 6s)
+      }, 2000); // 2 seconds for second reel to stop (total 4s)
+    }, 2000); // 2 seconds for first reel to stop (total 2s)
   };
 
   const checkWin = () => {
@@ -309,7 +315,7 @@ const SlotMachine = () => {
         });
       }
     } else {
-      setMessage("Try again!");
+      setMessage("Try Again!"); // Persistently show "Try Again!" or win message
     }
   };
 
@@ -348,16 +354,18 @@ const SlotMachine = () => {
           </div>
         </div>
 
-        {message && (
-          <div className="text-xl font-bold text-center mb-4 py-2 px-4 rounded-md bg-gray-100">
-            {message}
-          </div>
-        )}
+        <div className="text-sm text-gray-500 mt-2 mb-2">
+          Seed: {seed} | Hash: {spinResults.length > 0 ? sha256(seed + new Date().getTime().toString()).toString() : "N/A"}
+        </div>
+
+        <div className="text-xl font-bold text-center mb-4 py-2 px-4 rounded-md bg-gray-100">
+          {message} {/* Persistently visible message, updating dynamically */}
+        </div>
 
         <div className="grid grid-cols-3 gap-2 mb-6 bg-gray-100 p-4 rounded-lg">
           {reels.map((reel, reelIndex) => (
             <div key={reelIndex} className="flex flex-col items-center space-y-4 overflow-hidden h-72 relative">
-              <div className={`flex flex-col items-center space-y-4 ${!reelStates[reelIndex] ? "animate-spin-slow" : ""}`}>
+              <div className={`flex flex-col items-center space-y-4 ${!reelStates[reelIndex] ? "spinning-grid" : "stopped-grid"}`}>
                 {reel.map((symbol, symbolIndex) => (
                   <div
                     key={`${reelIndex}-${symbolIndex}`}
@@ -371,7 +379,9 @@ const SlotMachine = () => {
                       src={symbol.imageUrl} 
                       alt={symbol.name}
                       onError={handleImageError}
-                      className={`w-16 h-16 object-contain ${symbol.isJackpot ? "animate-shine" : ""}`}
+                      className={`w-16 h-16 object-contain ${symbol.isJackpot ? "animate-shine" : ""} ${
+                        !reelStates[reelIndex] ? "blur-md" : "" // Blur only spinning grids
+                      }`}
                     />
                   </div>
                 ))}
@@ -383,25 +393,21 @@ const SlotMachine = () => {
         <div className="flex justify-between items-center mb-4">
           <Button
             variant="outline"
-            onClick={setMinBet}
+            onClick={() => adjustBet(-0.5)}
             disabled={isSpinning}
             className="w-24"
           >
-            Min Bet
+            -0.5
           </Button>
           <div className="text-xl font-bold">Bet: {bet.toFixed(2)} Pi</div>
           <Button
             variant="outline"
-            onClick={setMaxBet}
+            onClick={() => adjustBet(0.5)}
             disabled={isSpinning}
             className="w-24"
           >
-            Max Bet
+            +0.5
           </Button>
-        </div>
-
-        <div className="text-sm text-gray-500 mt-2">
-          Seed: {seed} | Hash: {spinResults.length > 0 ? sha256(seed + new Date().getTime().toString()).toString() : "N/A"}
         </div>
 
         <div className="flex justify-center space-x-4">
@@ -428,5 +434,28 @@ const SlotMachine = () => {
     </div>
   );
 };
+
+// Add to your CSS (e.g., index.css or SlotMachine.css) or tailwind.config.js
+const styles = `
+  @keyframes vertical-scroll {
+    0% { transform: translateY(0); }
+    100% { transform: translateY(-300%); } /* Adjust based on symbol height (3x symbol height) */
+  }
+
+  @keyframes slow-stop {
+    0% { transform: translateY(-300%); }
+    80% { transform: translateY(-10%); opacity: 1; }
+    100% { transform: translateY(0); opacity: 1; }
+  }
+
+  .spinning-grid {
+    animation: vertical-scroll 6s linear infinite;
+    filter: blur(5px);
+  }
+
+  .stopped-grid {
+    animation: slow-stop 0.5s ease-out forwards;
+  }
+`;
 
 export default SlotMachine;
