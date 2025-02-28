@@ -4,8 +4,17 @@ import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/use-toast";
 import sha256 from 'crypto-js/sha256';
 
+// Define the Symbol type interface to ensure consistent types
+interface SlotSymbol {
+  id: number;
+  imageUrl: string;
+  isJackpot: boolean;
+  name: string;
+  multiplier: number;
+}
+
 // Custom symbol images for the slot machine
-const SYMBOLS = [
+const SYMBOLS: SlotSymbol[] = [
   { 
     id: 1, 
     imageUrl: "https://via.placeholder.com/64", // Fallback—update to "/lovable-uploads/d28665b4-bc3f-46ac-8446-8db7be9e73e9.png" 
@@ -43,6 +52,15 @@ const SYMBOLS = [
   },
 ];
 
+// Define the fallback symbol
+const FALLBACK_SYMBOL: SlotSymbol = { 
+  id: 0, 
+  name: "?", 
+  imageUrl: "https://via.placeholder.com/64",
+  isJackpot: false,
+  multiplier: 0
+};
+
 const INITIAL_CREDIT = 100;
 const MIN_BET = 0.5;
 const MAX_BET = 10;
@@ -56,16 +74,16 @@ const SlotMachine = () => {
   const [bet, setBet] = useState(MIN_BET);
   const [isSpinning, setIsSpinning] = useState(false);
   const [jackpotAmount, setJackpotAmount] = useState(INITIAL_JACKPOT); // Starting jackpot amount
-  const [reels, setReels] = useState([
-    [SYMBOLS[0] || { name: "?", imageUrl: "https://via.placeholder.com/64" }, SYMBOLS[1] || { name: "?", imageUrl: "https://via.placeholder.com/64" }, SYMBOLS[2] || { name: "?", imageUrl: "https://via.placeholder.com/64" }],
-    [SYMBOLS[1] || { name: "?", imageUrl: "https://via.placeholder.com/64" }, SYMBOLS[2] || { name: "?", imageUrl: "https://via.placeholder.com/64" }, SYMBOLS[3] || { name: "?", imageUrl: "https://via.placeholder.com/64" }],
-    [SYMBOLS[2] || { name: "?", imageUrl: "https://via.placeholder.com/64" }, SYMBOLS[3] || { name: "?", imageUrl: "https://via.placeholder.com/64" }, SYMBOLS[0] || { name: "?", imageUrl: "https://via.placeholder.com/64" }],
+  const [reels, setReels] = useState<SlotSymbol[][]>([
+    [SYMBOLS[0] || FALLBACK_SYMBOL, SYMBOLS[1] || FALLBACK_SYMBOL, SYMBOLS[2] || FALLBACK_SYMBOL],
+    [SYMBOLS[1] || FALLBACK_SYMBOL, SYMBOLS[2] || FALLBACK_SYMBOL, SYMBOLS[3] || FALLBACK_SYMBOL],
+    [SYMBOLS[2] || FALLBACK_SYMBOL, SYMBOLS[3] || FALLBACK_SYMBOL, SYMBOLS[0] || FALLBACK_SYMBOL],
   ]);
   const [reelStates, setReelStates] = useState([true, true, true]); // All reels initially stopped
   const [seed, setSeed] = useState("");
-  const [spinResults, setSpinResults] = useState([]);
+  const [spinResults, setSpinResults] = useState<number[][]>([]);
   const [message, setMessage] = useState("");
-  const [lastJackpotWin, setLastJackpotWin] = useState(null);
+  const [lastJackpotWin, setLastJackpotWin] = useState<Date | null>(null);
 
   useEffect(() => {
     // Generate initial seed and check jackpot reset
@@ -98,10 +116,10 @@ const SlotMachine = () => {
     const hash = sha256(combinedSeed).toString();
 
     // Generate 3x3 outcomes (full grid for visuals, use middle row for wins)
-    const results = [];
+    const results: number[][] = [];
     
     for (let reel = 0; reel < 3; reel++) {
-      const reelResult = [];
+      const reelResult: number[] = [];
       for (let pos = 0; pos < 3; pos++) {
         const hashSlice = hash.slice((reel * 3 + pos) * 8, (reel * 3 + pos + 1) * 8);
         const symbolIndex = parseInt(hashSlice, 16) % SYMBOLS.length;
@@ -148,7 +166,7 @@ const SlotMachine = () => {
       setReels(prev => {
         const updatedReels = [...prev];
         for (let i = 0; i < 3; i++) {
-          updatedReels[i] = outcomes[i].map(idx => SYMBOLS[idx] || { name: "?", imageUrl: "https://via.placeholder.com/64" });
+          updatedReels[i] = outcomes[i].map(idx => SYMBOLS[idx] || FALLBACK_SYMBOL);
         }
         return updatedReels;
       });
@@ -212,9 +230,16 @@ const SlotMachine = () => {
     }
   };
 
-  const adjustBet = (amount) => {
+  const adjustBet = (amount: number) => {
     const newBet = Math.max(MIN_BET, Math.min(MAX_BET, bet + amount));
     setBet(newBet);
+  };
+
+  // Handle image error with proper typing
+  const handleImageError = (e: React.SyntheticEvent<HTMLImageElement, Event>) => {
+    const imgElement = e.currentTarget;
+    imgElement.onerror = null;
+    imgElement.src = 'https://via.placeholder.com/64';
   };
 
   return (
@@ -250,7 +275,7 @@ const SlotMachine = () => {
                   <img 
                     src={symbol.imageUrl} 
                     alt={symbol.name}
-                    onError={(e) => { e.target.onerror = null; e.target.src = 'https://via.placeholder.com/64'; }} // Fallback for missing images
+                    onError={handleImageError}
                     className={`w-16 h-16 object-contain ${symbol.isJackpot ? "animate-shine" : ""}`}
                   />
                 </div>
