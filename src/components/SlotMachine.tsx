@@ -95,6 +95,11 @@ const SlotMachine = () => {
     spinningSoundRef.current = new Audio('/music/spinning.mp3');
     jackpotSoundRef.current = new Audio('/music/jackpot.wav');
 
+    // Configure spinning sound to loop
+    if (spinningSoundRef.current) {
+      spinningSoundRef.current.loop = true; // Enable looping for spinning sound
+    }
+
     // Preload audio
     [buttonSoundRef, spinningSoundRef, jackpotSoundRef].forEach(ref => {
       if (ref.current) ref.current.load();
@@ -127,6 +132,9 @@ const SlotMachine = () => {
   };
 
   const playSpinningSound = () => {
+    if (spinningSoundRef.current && !spinningSoundRef.current.paused) {
+      return; // Prevent replay if already playing
+    }
     if (spinningSoundRef.current) {
       spinningSoundRef.current.currentTime = 0;
       spinningSoundRef.current.play().catch(e => console.log("Spinning sound failed:", e));
@@ -248,7 +256,7 @@ const SlotMachine = () => {
             return updatedReels;
           });
           
-          // End spinning state and sound
+          // End spinning state and sound only when all reels stop
           setIsSpinning(false);
           stopSpinningSound();
           
