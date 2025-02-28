@@ -79,12 +79,10 @@ const SlotMachine = () => {
     [SYMBOLS[2] || FALLBACK_SYMBOL, SYMBOLS[3] || FALLBACK_SYMBOL, SYMBOLS[0] || FALLBACK_SYMBOL],
   ]);
   const [reelStates, setReelStates] = useState([false, true, true]); // First reel starts spinning, others wait
-  const [seed, setSeed] = useState("");
+  const [seed, setSeed] = useState(""); // Kept for fairness but removed from UI
   const [spinResults, setSpinResults] = useState([]);
   const [message, setMessage] = useState("Try Again!"); // Persistently visible, defaults to "Try Again!"
   const [lastJackpotWin, setLastJackpotWin] = useState(null); // Track last jackpot win
-  const [houseEarnings, setHouseEarnings] = useState(0); // Track house earnings
-  const [jackpotContributions, setJackpotContributions] = useState(0); // Track jackpot contributions
 
   // Audio references (unchanged from your original)
   const buttonSoundRef = useRef(null);
@@ -209,12 +207,9 @@ const SlotMachine = () => {
     // 1. Deduct bet from balance
     setCredit((prev) => prev - bet);
     
-    // 2. Add 5% of bet to jackpot and 5% to house
+    // 2. Add 5% of bet to jackpot and 5% to house (implicitly handled internally)
     const jackpotContribution = bet * JACKPOT_POOL; // 5% to jackpot
-    const houseContribution = bet * HOUSE_EDGE; // 5% to house
     setJackpotAmount(prev => prev + jackpotContribution);
-    setHouseEarnings(prev => prev + houseContribution);
-    setJackpotContributions(prev => prev + jackpotContribution);
     
     // 3. Start spinning animation and sound for first reel
     setIsSpinning(true);
@@ -354,10 +349,6 @@ const SlotMachine = () => {
           </div>
         </div>
 
-        <div className="text-sm text-gray-500 mt-2 mb-2">
-          Seed: {seed} | Hash: {spinResults.length > 0 ? sha256(seed + new Date().getTime().toString()).toString() : "N/A"}
-        </div>
-
         <div className="text-xl font-bold text-center mb-4 py-2 px-4 rounded-md bg-gray-100">
           {message} {/* Persistently visible message, updating dynamically */}
         </div>
@@ -380,7 +371,7 @@ const SlotMachine = () => {
                       alt={symbol.name}
                       onError={handleImageError}
                       className={`w-16 h-16 object-contain ${symbol.isJackpot ? "animate-shine" : ""} ${
-                        !reelStates[reelIndex] ? "blur-md" : "" // Blur only spinning grids
+                        !reelStates[reelIndex] && isSpinning ? "blur-md" : "" // Blur only when spinning and not stopped
                       }`}
                     />
                   </div>
@@ -426,10 +417,6 @@ const SlotMachine = () => {
             {isSpinning ? "Spinning..." : "SPIN"}
           </Button>
         </div>
-
-        <div className="text-sm text-gray-500 mt-2">
-          House: {houseEarnings.toFixed(2)} Pi, Jackpot Pool: {jackpotContributions.toFixed(2)} Pi
-        </div>
       </div>
     </div>
   );
@@ -450,7 +437,6 @@ const styles = `
 
   .spinning-grid {
     animation: vertical-scroll 6s linear infinite;
-    filter: blur(5px);
   }
 
   .stopped-grid {
