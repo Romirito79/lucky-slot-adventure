@@ -38,6 +38,12 @@
   }
 }
 
+/* Animation for shine effect */
+@keyframes shine {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
 .animate-shine {
   background: linear-gradient(
     90deg,
@@ -46,30 +52,46 @@
     theme('colors.slot.red') 100%
   );
   background-size: 200% 100%;
+  animation: shine 8s linear infinite;
 }
 
-/* Animation for spinning reels */
-@keyframes spin {
-  0% { transform: translateY(0); }
-  100% { transform: translateY(-900px); } /* Adjust based on slot.jpg height */
+/* Animation for pulsing glow */
+@keyframes glow {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
 }
 
-/* Animation for stopping reels */
-@keyframes stop {
-  0% { transform: translateY(-900px); }
-  100% { transform: translateY(var(--stop-position, 0)); }
+.animate-glow {
+  animation: glow 2s ease-in-out infinite;
 }
 
-.spinning-grid {
-  animation: spin 2s linear infinite;
-  filter: blur(2px);
+/* Win animations matching the CodePen example */
+@keyframes win1 {
+  0% {
+    background: linear-gradient(45deg, orange 0%, yellow 100%);
+    box-shadow: 0 0 80px orange;
+  }
+  100% {
+    background: linear-gradient(45deg, #808080 0%, #d3d3d3 100%);
+    box-shadow: -2px 2px 3px rgba(0, 0, 0, 0.3);
+  }
 }
 
-.stopped-grid {
-  animation: stop 0.5s ease-out forwards;
+@keyframes win2 {
+  0% {
+    background: linear-gradient(45deg, lightblue 0%, lightgreen 100%);
+    box-shadow: 0 0 80px lightgreen;
+  }
+  100% {
+    background: linear-gradient(45deg, #808080 0%, #d3d3d3 100%);
+    box-shadow: -2px 2px 3px rgba(0, 0, 0, 0.3);
+  }
 }
 
-/* Height for container to match CodePen */
-.h-900 {
-  height: 900px;
+.win1 {
+  animation: win1 200ms steps(2, end) infinite;
+}
+
+.win2 {
+  animation: win2 200ms steps(2, end) infinite;
 }
