@@ -14,11 +14,11 @@ interface SlotSymbol {
 
 // Custom symbol names (mapped to slot.jpg positions)
 const SYMBOLS: SlotSymbol[] = [
-  { id: 1, imageUrl: "", isJackpot: false, name: "Pi", multiplier: 2 }, // Maps to Pi coin
-  { id: 2, imageUrl: "", isJackpot: false, name: "3.14", multiplier: 1 }, // Maps to 3.14
-  { id: 3, imageUrl: "", isJackpot: false, name: "GCV", multiplier: 10 }, // Maps to GCV
-  { id: 4, imageUrl: "", isJackpot: false, name: "RGCV", multiplier: 5 }, // Maps to RGCV
-  { id: 5, imageUrl: "", isJackpot: true, name: "π", multiplier: 0 }, // Maps to π or Jackpot
+  { id: 1, imageUrl: "", isJackpot: false, name: "Pi", multiplier: 3 }, // Maps to Pi coin (position 8 in slot.jpg, 700px), wins 3x
+  { id: 2, imageUrl: "", isJackpot: false, name: "3.14", multiplier: 2 }, // Maps to 3.14 (positions 3 and 6, 200px and 500px), wins 2x
+  { id: 3, imageUrl: "", isJackpot: false, name: "GCV", multiplier: 10 }, // Maps to GCV (position 4, 300px), wins 10x
+  { id: 4, imageUrl: "", isJackpot: false, name: "RGCV", multiplier: 5 }, // Maps to RGCV (position 1, 0px), wins 5x
+  { id: 5, imageUrl: "", isJackpot: true, name: "π", multiplier: 0 }, // Maps to π/Jackpot (positions 2, 5, 7, 9, 100px, 400px, 600px, 800px), wins jackpot
 ];
 
 // Define the fallback symbol
@@ -306,53 +306,61 @@ const SlotMachine = () => {
   };
 
   const checkWin = () => {
-    // Get the middle row symbols (the win line)
-    const middleRow = spinResults.map(reel => reel[1]);
-    
-    // Check if we have matching symbols
-    const firstMatch = middleRow[0] === middleRow[1];
-    const secondMatch = middleRow[1] === middleRow[2];
-    const allMatch = firstMatch && secondMatch;
-    
-    if (firstMatch || secondMatch) {
-      // Set win class for animation based on match type
-      if (allMatch) {
-        setWinClass("win2"); // Like CodePen example
-        
-        // Check if it's a jackpot (π symbol)
-        const winningSymbolIndex = middleRow[0];
-        const winningSymbol = SYMBOLS[winningSymbolIndex];
-        
-        if (winningSymbol?.isJackpot) {
-          // Jackpot win (π symbol) - player wins entire jackpot
-          if (!lastJackpotWin || new Date().getUTCDate() !== lastJackpotWin.getUTCDate()) {
-            const winAmount = jackpotAmount; // Full jackpot
-            setCredit(prev => prev + winAmount);
-            setMessage(`Jackpot! +${winAmount.toFixed(2)} Pi`);
-            
-            // Play jackpot sound
-            playJackpotSound();
-            
-            toast({
-              title: "🎰 JACKPOT WIN! 🎰",
-              description: `You won ${winAmount.toFixed(2)} Pi from the jackpot!`,
-              className: "bg-slot-purple text-white",
-            });
-            setJackpotAmount(INITIAL_JACKPOT); // Reset jackpot
-            setLastJackpotWin(new Date()); // Record jackpot win
-            localStorage.setItem('lastJackpotWin', new Date().toISOString()); // Persist jackpot win
-          } else {
-            setMessage("Jackpot already won today! Try again tomorrow.");
-            toast({
-              title: "Jackpot Unavailable",
-              description: "Only one jackpot win allowed per day.",
-              variant: "destructive",
-            });
-          }
+    // Get the middle row symbols (the win line) from the spin results
+    const middleRowIndices = spinResults.map(reel => reel[1]); // Middle position (index 1)
+    const middleRowSymbols = middleRowIndices.map(index => SYMBOLS[index].name);
+
+    // Check if all three middle symbols match
+    const allMatch = middleRowSymbols.every(symbol => symbol === middleRowSymbols[0]);
+
+    if (allMatch) {
+      const winningSymbol = SYMBOLS[middleRowIndices[0]]; // Use the first matching symbol's index
+      const effectiveBet = bet * 0.9; // 90% of bet (5% to house, 5% to jackpot)
+
+      if (winningSymbol.isJackpot) { // Jackpot (position 5 in slot.jpg, "π")
+        // Jackpot win - player wins entire jackpot, only once per day
+        if (!lastJackpotWin || new Date().getUTCDate() !== lastJackpotWin.getUTCDate()) {
+          const winAmount = jackpotAmount; // Full jackpot
+          setCredit(prev => prev + winAmount);
+          setMessage(`Jackpot! +${winAmount.toFixed(2)} Pi`);
+          playJackpotSound();
+          toast({
+            title: "🎰 JACKPOT WIN! 🎰",
+            description: `You won ${winAmount.toFixed(2)} Pi from the jackpot!`,
+            className: "bg-slot-purple text-white",
+          });
+          setJackpotAmount(INITIAL_JACKPOT); // Reset jackpot
+          setLastJackpotWin(new Date()); // Record jackpot win
+          localStorage.setItem('lastJackpotWin', new Date().toISOString()); // Persist jackpot win
         } else {
-          // Regular win with all three symbols matching
-          const effectiveBet = bet * 0.9; // 90% of bet (5% to house, 5% to jackpot)
-          const multiplier = winningSymbol?.multiplier || 0;
+          setMessage("Jackpot already won today! Try again tomorrow.");
+          toast({
+            title: "Jackpot Unavailable",
+            description: "Only one jackpot win allowed per day.",
+            variant: "destructive",
+          });
+        }
+      } else {
+        // Regular win based on symbol and its multiplier
+        let multiplier: number;
+        switch (winningSymbol.name) {
+          case "RGCV": // Position 1 in slot.jpg (0px)
+            multiplier = 5;
+            break;
+          case "Pi": // Position 8 in slot.jpg (700px), Pi coin
+            multiplier = 3;
+            break;
+          case "3.14": // Positions 3 and 6 in slot.jpg (200px, 500px)
+            multiplier = 2;
+            break;
+          case "GCV": // Position 4 in slot.jpg (300px)
+            multiplier = 10;
+            break;
+          default:
+            multiplier = 0; // Default case, though all symbols should be covered
+        }
+
+        if (multiplier > 0) {
           const winAmount = effectiveBet * multiplier;
           setCredit(prev => prev + winAmount);
           setMessage(`Winner! +${winAmount.toFixed(2)} Pi`);
@@ -361,22 +369,43 @@ const SlotMachine = () => {
             description: `You won ${winAmount.toFixed(2)} Pi! (${multiplier}x your bet)`,
             className: "bg-slot-gold text-black",
           });
+        } else {
+          setMessage("Try Again!");
         }
-      } else {
-        // Partial win (2 symbols match)
-        setWinClass("win1");
-        
-        // Determine which symbols match
+      }
+      setWinClass("win2"); // Full match animation
+    } else {
+      // Check for partial matches (2 symbols) as per CodePen logic, but only if you want to keep this feature
+      const firstMatch = middleRowSymbols[0] === middleRowSymbols[1];
+      const secondMatch = middleRowSymbols[1] === middleRowSymbols[2];
+
+      if (firstMatch || secondMatch) {
+        setWinClass("win1"); // Partial match animation
         const matchingReels = firstMatch ? [0, 1] : [1, 2];
-        const matchingSymbolIndex = middleRow[matchingReels[0]];
+        const matchingSymbolIndex = middleRowIndices[matchingReels[0]];
         const winningSymbol = SYMBOLS[matchingSymbolIndex];
         
-        // Calculate win amount (half the regular win amount)
-        const effectiveBet = bet * 0.9;
-        const multiplier = winningSymbol?.multiplier || 0;
-        const winAmount = (effectiveBet * multiplier) / 2; // Half for partial match
-        
-        if (winAmount > 0) {
+        let multiplier: number;
+        switch (winningSymbol.name) {
+          case "RGCV":
+            multiplier = 5;
+            break;
+          case "Pi":
+            multiplier = 3;
+            break;
+          case "3.14":
+            multiplier = 2;
+            break;
+          case "GCV":
+            multiplier = 10;
+            break;
+          default:
+            multiplier = 0;
+        }
+
+        if (multiplier > 0) {
+          const effectiveBet = bet * 0.9;
+          const winAmount = (effectiveBet * multiplier) / 2; // Half for partial match
           setCredit(prev => prev + winAmount);
           setMessage(`Partial Win! +${winAmount.toFixed(2)} Pi`);
           toast({
@@ -387,9 +416,10 @@ const SlotMachine = () => {
         } else {
           setMessage("Try Again!");
         }
+      } else {
+        setMessage("Try Again!"); // No matches
+        setWinClass(""); // No win animation
       }
-    } else {
-      setMessage("Try Again!"); // No matches
     }
   };
 
