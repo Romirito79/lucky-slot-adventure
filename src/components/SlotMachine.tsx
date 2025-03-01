@@ -344,7 +344,7 @@ const SlotMachine = () => {
           {message} {/* Persistently visible message, updating dynamically */}
         </div>
 
-        <div className="grid grid-cols-3 gap-2 mb-6 bg-gray-100 p-4 rounded-lg">
+        <div className="grid grid-cols-3 gap-4 mb-6 bg-gray-100 p-2 rounded-lg shadow-md"> {/* Adjusted for CodePen spacing and shadow */}
           {reels.map((reel, reelIndex) => (
             <div key={reelIndex} className="flex flex-col items-center space-y-4 overflow-hidden h-72 relative" id={`reel-container-${reelIndex}`}>
               <div className={`flex flex-col items-center space-y-4 ${!reelStates[reelIndex] ? "spinning-grid" : "stopped-grid"}`} id={`reel-${reelIndex}`}>
