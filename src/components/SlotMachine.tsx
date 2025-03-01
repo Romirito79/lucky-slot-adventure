@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useRef } from 'react';
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/use-toast";
@@ -49,12 +48,12 @@ const SlotMachine = () => {
     [FALLBACK_SYMBOL, FALLBACK_SYMBOL, FALLBACK_SYMBOL],
     [FALLBACK_SYMBOL, FALLBACK_SYMBOL, FALLBACK_SYMBOL],
   ]);
-  const [reelStates, setReelStates] = useState([true, true, true]); // All reels stopped initially
+  const [reelStates, setReelStates] = useState(["stopped", "stopped", "stopped"]); // All reels stopped initially
   const [seed, setSeed] = useState("");
   const [spinResults, setSpinResults] = useState([]);
   const [message, setMessage] = useState("Try Again!"); // Default message
   const [lastJackpotWin, setLastJackpotWin] = useState(null);
-
+  
   // References to reel elements
   const reelRefs = [useRef(null), useRef(null), useRef(null)];
   
@@ -62,6 +61,18 @@ const SlotMachine = () => {
   const buttonSoundRef = useRef(null);
   const spinningSoundRef = useRef(null);
   const jackpotSoundRef = useRef(null);
+
+  useEffect(() => {
+    // Preload all symbol images
+    SYMBOLS.forEach(symbol => {
+      const img = new Image();
+      img.src = symbol.imageUrl;
+    });
+    
+    // Also preload fallback image
+    const fallbackImg = new Image();
+    fallbackImg.src = FALLBACK_SYMBOL.imageUrl;
+  }, []);
 
   useEffect(() => {
     // Initialize audio elements
@@ -193,56 +204,89 @@ const SlotMachine = () => {
     
     // 3. Start spinning animation and sound
     setIsSpinning(true);
-    setReelStates([false, false, false]); // Start all reels spinning
+    
+    // Start all reels spinning with staggered start to match CodePen
+    setReelStates(["spinning", "waiting", "waiting"]);
+    
+    // Start first reel immediately
     playSpinningSound();
     
     // 4. Generate outcomes
     const outcomes = generateOutcomes();
     setSpinResults(outcomes);
     
-    // 5. Sequential stopping of reels with CodePen-like timing
+    // 5. Sequential staggered start and stopping of reels to match CodePen
+    
+    // Start second reel after 500ms
     setTimeout(() => {
-      // Stop first reel after 800ms
-      setReelStates(prev => [true, prev[1], prev[2]]);
+      setReelStates(prev => ["spinning", "spinning", prev[2]]);
+    }, 500);
+    
+    // Start third reel after 1000ms
+    setTimeout(() => {
+      setReelStates(prev => [prev[0], prev[1], "spinning"]);
+    }, 1000);
+    
+    // Stop first reel after 2000ms
+    setTimeout(() => {
       const firstReelSymbols = outcomes[0].map(idx => SYMBOLS[idx] || FALLBACK_SYMBOL);
       setReels(prev => {
         const updated = [...prev];
         updated[0] = firstReelSymbols;
         return updated;
       });
+      setReelStates(prev => ["stopping", prev[1], prev[2]]);
       
+      // Set to stopped after animation completes
       setTimeout(() => {
-        // Stop second reel after 1200ms total
-        setReelStates(prev => [prev[0], true, prev[2]]);
-        const secondReelSymbols = outcomes[1].map(idx => SYMBOLS[idx] || FALLBACK_SYMBOL);
-        setReels(prev => {
-          const updated = [...prev];
-          updated[1] = secondReelSymbols;
-          return updated;
-        });
+        setReelStates(prev => ["stopped", prev[1], prev[2]]);
+      }, 500); // 500ms for stopping animation
+      
+    }, 2000);
+    
+    // Stop second reel after 2500ms
+    setTimeout(() => {
+      const secondReelSymbols = outcomes[1].map(idx => SYMBOLS[idx] || FALLBACK_SYMBOL);
+      setReels(prev => {
+        const updated = [...prev];
+        updated[1] = secondReelSymbols;
+        return updated;
+      });
+      setReelStates(prev => [prev[0], "stopping", prev[2]]);
+      
+      // Set to stopped after animation completes
+      setTimeout(() => {
+        setReelStates(prev => [prev[0], "stopped", prev[2]]);
+      }, 500); // 500ms for stopping animation
+      
+    }, 2500);
+    
+    // Stop third reel after 3000ms
+    setTimeout(() => {
+      const thirdReelSymbols = outcomes[2].map(idx => SYMBOLS[idx] || FALLBACK_SYMBOL);
+      setReels(prev => {
+        const updated = [...prev];
+        updated[2] = thirdReelSymbols;
+        return updated;
+      });
+      setReelStates(prev => [prev[0], prev[1], "stopping"]);
+      
+      // Set to stopped after animation completes
+      setTimeout(() => {
+        setReelStates(prev => [prev[0], prev[1], "stopped"]);
         
-        setTimeout(() => {
-          // Stop third reel after 1600ms total
-          setReelStates(prev => [prev[0], prev[1], true]);
-          const thirdReelSymbols = outcomes[2].map(idx => SYMBOLS[idx] || FALLBACK_SYMBOL);
-          setReels(prev => {
-            const updated = [...prev];
-            updated[2] = thirdReelSymbols;
-            return updated;
-          });
-          
-          // End spinning state and sound
-          setIsSpinning(false);
-          stopSpinningSound();
-          
-          // Check for wins and set message
-          checkWin();
-          
-          // Generate new seed for next spin
-          generateNewSeed();
-        }, 400); // 400ms between second and third reel stops
-      }, 400); // 400ms between first and second reel stops
-    }, 800); // 800ms until first reel stops
+        // End spinning state and sound
+        setIsSpinning(false);
+        stopSpinningSound();
+        
+        // Check for wins and set message
+        checkWin();
+        
+        // Generate new seed for next spin
+        generateNewSeed();
+      }, 500); // 500ms for stopping animation
+      
+    }, 3000);
   };
 
   const checkWin = () => {
@@ -338,8 +382,10 @@ const SlotMachine = () => {
               <div key={reelIndex} className="relative overflow-hidden h-[270px] bg-[#111] rounded border-2 border-[#444]">
                 <div 
                   ref={reelRefs[reelIndex]}
-                  className={`flex flex-col transition-all duration-500 ${!reelStates[reelIndex] ? "animate-spin-reel" : ""}`}
-                  style={{ transform: "translateY(0)" }}
+                  className={`flex flex-col transition-all ${
+                    reelStates[reelIndex] === "spinning" ? "animate-spin" : 
+                    reelStates[reelIndex] === "stopping" ? "animate-stop" : ""
+                  } ${reelStates[reelIndex] === "spinning" ? "spinning-grid" : ""}`}
                 >
                   {/* Use actual symbols instead of slot.jpg */}
                   {reel.map((symbol, symbolIndex) => (
@@ -401,16 +447,31 @@ const SlotMachine = () => {
         </div>
       </div>
 
-      {/* Fix: Removed the 'jsx: true' property which was causing the type error */}
       <style>
         {`
-          @keyframes spin-reel {
+          /* Spin animation - 2s linear infinite like CodePen */
+          @keyframes spin {
             0% { transform: translateY(0); }
             100% { transform: translateY(-${90 * SYMBOLS.length}px); }
           }
           
-          .animate-spin-reel {
-            animation: spin-reel 0.5s linear infinite;
+          /* Stop animation - 0.5s ease-out to slow down gracefully */
+          @keyframes stop {
+            0% { transform: translateY(-${90 * SYMBOLS.length * 0.8}px); }
+            100% { transform: translateY(0); }
+          }
+          
+          .animate-spin {
+            animation: spin 2s linear infinite;
+          }
+          
+          .animate-stop {
+            animation: stop 0.5s ease-out forwards;
+          }
+          
+          /* Add blur effect during spinning like CodePen */
+          .spinning-grid {
+            filter: blur(2px);
           }
         `}
       </style>
