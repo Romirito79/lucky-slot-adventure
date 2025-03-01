@@ -47,3 +47,12 @@
   );
   background-size: 200% 100%;
 }
+
+@keyframes spin-reel {
+  0% { transform: translateY(0); }
+  100% { transform: translateY(-450px); } /* Adjust based on symbol height * number of symbols */
+}
+
+.animate-spin-reel {
+  animation: spin-reel 0.5s linear infinite;
+}
