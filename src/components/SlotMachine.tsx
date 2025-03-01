@@ -262,7 +262,7 @@ const SlotMachine = () => {
   const updateReelPosition = (reelIndex, position) => {
     const reelElement = document.querySelector(`#reel-${reelIndex}`);
     if (reelElement) {
-      reelElement.style.transform = `translateY(${position}px)`;
+      (reelElement as HTMLElement).style.transform = `translateY(${position}px)`;
     }
   };
 
