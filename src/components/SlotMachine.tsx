@@ -12,43 +12,13 @@ interface SlotSymbol {
   multiplier: number;
 }
 
-// Custom symbol images for the slot machine
+// Custom symbol names (mapped to slot.jpg positions)
 const SYMBOLS: SlotSymbol[] = [
-  { 
-    id: 1, 
-    imageUrl: "/images/pi-coin.png", 
-    isJackpot: false, 
-    name: "Pi", 
-    multiplier: 2 
-  },
-  { 
-    id: 2, 
-    imageUrl: "/images/3.14.png",
-    isJackpot: false, 
-    name: "3.14", 
-    multiplier: 1 
-  },
-  { 
-    id: 3, 
-    imageUrl: "/images/gcv.png",
-    isJackpot: false, 
-    name: "GCV", 
-    multiplier: 10 
-  },
-  { 
-    id: 4, 
-    imageUrl: "/images/rgcv.png",
-    isJackpot: false, 
-    name: "RGCV", 
-    multiplier: 5 
-  },
-  { 
-    id: 5, 
-    imageUrl: "/images/Jackpot.png",
-    isJackpot: true, 
-    name: "π", 
-    multiplier: 0 
-  },
+  { id: 1, imageUrl: "", isJackpot: false, name: "Pi", multiplier: 2 }, // Maps to Pi coin (position 8 in slot.jpg, 700px from top)
+  { id: 2, imageUrl: "", isJackpot: false, name: "3.14", multiplier: 1 }, // Maps to 3.14 (positions 3 and 6, 200px and 500px)
+  { id: 3, imageUrl: "", isJackpot: false, name: "GCV", multiplier: 10 }, // Maps to GCV (position 4, 300px)
+  { id: 4, imageUrl: "", isJackpot: false, name: "RGCV", multiplier: 5 }, // Maps to RGCV (position 1, 0px)
+  { id: 5, imageUrl: "", isJackpot: true, name: "π", multiplier: 0 }, // Maps to π (positions 2, 7, 9, 100px, 600px, 800px) or Jackpot (position 5, 400px)
 ];
 
 // Define the fallback symbol
@@ -74,9 +44,9 @@ const SlotMachine = () => {
   const [isSpinning, setIsSpinning] = useState(false);
   const [jackpotAmount, setJackpotAmount] = useState(INITIAL_JACKPOT); // Starting jackpot amount
   const [reels, setReels] = useState<SlotSymbol[][]>([
-    [SYMBOLS[0] || FALLBACK_SYMBOL, SYMBOLS[1] || FALLBACK_SYMBOL, SYMBOLS[2] || FALLBACK_SYMBOL],
-    [SYMBOLS[1] || FALLBACK_SYMBOL, SYMBOLS[2] || FALLBACK_SYMBOL, SYMBOLS[3] || FALLBACK_SYMBOL],
-    [SYMBOLS[2] || FALLBACK_SYMBOL, SYMBOLS[3] || FALLBACK_SYMBOL, SYMBOLS[0] || FALLBACK_SYMBOL],
+    [FALLBACK_SYMBOL, FALLBACK_SYMBOL, FALLBACK_SYMBOL],
+    [FALLBACK_SYMBOL, FALLBACK_SYMBOL, FALLBACK_SYMBOL],
+    [FALLBACK_SYMBOL, FALLBACK_SYMBOL, FALLBACK_SYMBOL],
   ]);
   const [reelStates, setReelStates] = useState([false, true, true]); // First reel starts spinning, others wait
   const [seed, setSeed] = useState(""); // Kept for fairness but removed from UI
@@ -228,35 +198,41 @@ const SlotMachine = () => {
     const outcomes = generateOutcomes();
     setSpinResults(outcomes);
     
-    // 5. Sequential stopping of reels with longer delays and slowing effect
+    // 5. Sequential stopping of reels with CodePen-like delays and slowing effect
     setTimeout(() => {
       // Stop first reel after 2 seconds, slow down before stopping
       setReelStates(prev => [true, false, true]); // First stops, second starts
+      const firstOutcome = outcomes[0][1]; // Middle symbol for first reel
       setReels(prev => {
         const updatedReels = [...prev];
         updatedReels[0] = outcomes[0].map(idx => SYMBOLS[idx] || FALLBACK_SYMBOL);
         return updatedReels;
       });
+      updateReelPosition(0, firstOutcome * -100); // Adjust for 100px per symbol
 
       setTimeout(() => {
-        // Stop second reel after 4 seconds (2 more seconds), slow down before stopping
+        // Stop second reel after 2.5 seconds (0.5s delay after first), slow down before stopping
         setReelStates(prev => [true, true, false]); // Second stops, third starts
+        const secondOutcome = outcomes[1][1]; // Middle symbol for second reel
         setReels(prev => {
           const updatedReels = [...prev];
           updatedReels[1] = outcomes[1].map(idx => SYMBOLS[idx] || FALLBACK_SYMBOL);
           return updatedReels;
         });
+        updateReelPosition(1, secondOutcome * -100); // Adjust for 100px per symbol
 
         setTimeout(() => {
-          // Stop third reel after 6 seconds (2 more seconds), slow down before stopping
+          // Stop third reel after 3 seconds (1s delay after first), slow down before stopping
           setReelStates(prev => [true, true, true]); // Third stops
+          const thirdOutcome = outcomes[2][1]; // Middle symbol for third reel
           setReels(prev => {
             const updatedReels = [...prev];
             updatedReels[2] = outcomes[2].map(idx => SYMBOLS[idx] || FALLBACK_SYMBOL);
             return updatedReels;
           });
+          updateReelPosition(2, thirdOutcome * -100); // Adjust for 100px per symbol
           
-          // End spinning state and sound only when all reels stop
+          // End spinning state and sound
           setIsSpinning(false);
           stopSpinningSound();
           
@@ -265,9 +241,16 @@ const SlotMachine = () => {
           
           // Generate new seed for next spin
           generateNewSeed();
-        }, 2000); // 2 seconds for third reel to stop (total 6s)
-      }, 2000); // 2 seconds for second reel to stop (total 4s)
-    }, 2000); // 2 seconds for first reel to stop (total 2s)
+        }, 500); // 0.5s for third reel to stop (total 3s)
+      }, 500); // 0.5s for second reel to stop (total 2.5s)
+    }, 2000); // 2s for first reel to stop (total 2s)
+  };
+
+  const updateReelPosition = (reelIndex, position) => {
+    const reelElement = document.querySelector(`#reel-${reelIndex}`);
+    if (reelElement) {
+      reelElement.style.transform = `translateY(${position}px)`;
+    }
   };
 
   const checkWin = () => {
@@ -363,27 +346,14 @@ const SlotMachine = () => {
 
         <div className="grid grid-cols-3 gap-2 mb-6 bg-gray-100 p-4 rounded-lg">
           {reels.map((reel, reelIndex) => (
-            <div key={reelIndex} className="flex flex-col items-center space-y-4 overflow-hidden h-72 relative">
-              <div className={`flex flex-col items-center space-y-4 ${!reelStates[reelIndex] ? "spinning-grid" : "stopped-grid"}`}>
-                {reel.map((symbol, symbolIndex) => (
-                  <div
-                    key={`${reelIndex}-${symbolIndex}`}
-                    className={`p-4 bg-white rounded-lg shadow ${
-                      symbol.isJackpot ? "animate-pulse bg-yellow-100" : ""
-                    } ${
-                      symbolIndex === 1 ? "border-4 border-yellow-500" : "" // Golden box for middle row
-                    }`}
-                  >
-                    <img 
-                      src={symbol.imageUrl} 
-                      alt={symbol.name}
-                      onError={handleImageError}
-                      className={`w-16 h-16 object-contain ${symbol.isJackpot ? "animate-shine" : ""} ${
-                        !reelStates[reelIndex] && isSpinning ? "blur-md" : "" // Blur only when spinning and not stopped
-                      }`}
-                    />
-                  </div>
-                ))}
+            <div key={reelIndex} className="flex flex-col items-center space-y-4 overflow-hidden h-72 relative" id={`reel-container-${reelIndex}`}>
+              <div className={`flex flex-col items-center space-y-4 ${!reelStates[reelIndex] ? "spinning-grid" : "stopped-grid"}`} id={`reel-${reelIndex}`}>
+                <img 
+                  src="/images/slot.jpg" // Use slot.jpg for all reels
+                  alt="Slot Reel"
+                  onError={handleImageError}
+                  className="w-16 h-900 object-contain" // Adjust height to match slot.jpg (900px assumed)
+                />
               </div>
             </div>
           ))}
@@ -432,23 +402,23 @@ const SlotMachine = () => {
 
 // Add to your CSS (e.g., index.css or SlotMachine.css) or tailwind.config.js
 const styles = `
-  @keyframes vertical-scroll {
+  @keyframes spin {
     0% { transform: translateY(0); }
-    100% { transform: translateY(-300%); } /* Adjust based on symbol height (3x symbol height) */
+    100% { transform: translateY(-900px); } /* Adjust based on slot.jpg height (900px assumed) */
   }
 
-  @keyframes slow-stop {
-    0% { transform: translateY(-300%); }
-    80% { transform: translateY(-10%); opacity: 1; }
-    100% { transform: translateY(0); opacity: 1; }
+  @keyframes stop {
+    0% { transform: translateY(-900px); }
+    100% { transform: translateY(outcomePosition); } /* Calculated via JS for symbol alignment */
   }
 
   .spinning-grid {
-    animation: vertical-scroll 6s linear infinite;
+    animation: spin 2s linear infinite;
+    filter: blur(2px);
   }
 
   .stopped-grid {
-    animation: slow-stop 0.5s ease-out forwards;
+    animation: stop 0.5s ease-out forwards;
   }
 `;
 
