@@ -47,6 +47,3 @@
   );
   background-size: 200% 100%;
 }
-
-/* Moving animation definitions to components prevents CSS processing conflicts */
-/* These are now defined directly in the SlotMachine component's style tag */
