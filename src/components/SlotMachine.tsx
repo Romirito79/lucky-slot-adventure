@@ -401,16 +401,19 @@ const SlotMachine = () => {
         </div>
       </div>
 
-      <style jsx>{`
-        @keyframes spin-reel {
-          0% { transform: translateY(0); }
-          100% { transform: translateY(-${90 * SYMBOLS.length}px); }
-        }
-        
-        .animate-spin-reel {
-          animation: spin-reel 0.5s linear infinite;
-        }
-      `}</style>
+      {/* Fix: Removed the 'jsx: true' property which was causing the type error */}
+      <style>
+        {`
+          @keyframes spin-reel {
+            0% { transform: translateY(0); }
+            100% { transform: translateY(-${90 * SYMBOLS.length}px); }
+          }
+          
+          .animate-spin-reel {
+            animation: spin-reel 0.5s linear infinite;
+          }
+        `}
+      </style>
     </div>
   );
 };
