@@ -47,3 +47,29 @@
   );
   background-size: 200% 100%;
 }
+
+/* Animation for spinning reels */
+@keyframes spin {
+  0% { transform: translateY(0); }
+  100% { transform: translateY(-900px); } /* Adjust based on slot.jpg height */
+}
+
+/* Animation for stopping reels */
+@keyframes stop {
+  0% { transform: translateY(-900px); }
+  100% { transform: translateY(var(--stop-position, 0)); }
+}
+
+.spinning-grid {
+  animation: spin 2s linear infinite;
+  filter: blur(2px);
+}
+
+.stopped-grid {
+  animation: stop 0.5s ease-out forwards;
+}
+
+/* Height for container to match CodePen */
+.h-900 {
+  height: 900px;
+}

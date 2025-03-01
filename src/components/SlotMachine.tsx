@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/use-toast";
-import sha256 from 'crypto-js/sha256'; // Ensure: npm install crypto-js
+import sha256 from 'crypto-js/sha256';
 
 // Define the Symbol type interface to ensure consistent types
 interface SlotSymbol {
@@ -53,6 +53,9 @@ const SlotMachine = () => {
   const [spinResults, setSpinResults] = useState([]);
   const [message, setMessage] = useState("Try Again!"); // Persistently visible, defaults to "Try Again!"
   const [lastJackpotWin, setLastJackpotWin] = useState(null); // Track last jackpot win
+  
+  // Refs for reel images to ensure they're loaded
+  const reelImagesRef = useRef([null, null, null]);
 
   // Audio references (unchanged from your original)
   const buttonSoundRef = useRef(null);
@@ -74,6 +77,16 @@ const SlotMachine = () => {
     [buttonSoundRef, spinningSoundRef, jackpotSoundRef].forEach(ref => {
       if (ref.current) ref.current.load();
     });
+
+    // Preload slot image to prevent white screen
+    const slotImage = new Image();
+    slotImage.src = '/images/slot.jpg';
+    slotImage.onload = () => {
+      console.log("Slot image preloaded successfully");
+    };
+    slotImage.onerror = (e) => {
+      console.error("Failed to preload slot image:", e);
+    };
 
     // Generate initial seed and check jackpot reset
     generateNewSeed();
@@ -346,13 +359,14 @@ const SlotMachine = () => {
 
         <div className="grid grid-cols-3 gap-2 mb-6 bg-gray-100 p-4 rounded-lg">
           {reels.map((reel, reelIndex) => (
-            <div key={reelIndex} className="flex flex-col items-center space-y-4 overflow-hidden h-72 relative" id={`reel-container-${reelIndex}`}>
-              <div className={`flex flex-col items-center space-y-4 ${!reelStates[reelIndex] ? "spinning-grid" : "stopped-grid"}`} id={`reel-${reelIndex}`}>
+            <div key={reelIndex} className="flex flex-col items-center overflow-hidden h-72 relative" id={`reel-container-${reelIndex}`}>
+              <div className={`flex flex-col items-center ${!reelStates[reelIndex] ? "spinning-grid" : "stopped-grid"}`} id={`reel-${reelIndex}`}>
                 <img 
-                  src="/images/slot.jpg" // Use slot.jpg for all reels
+                  ref={el => reelImagesRef.current[reelIndex] = el}
+                  src="/images/slot.jpg" 
                   alt="Slot Reel"
                   onError={handleImageError}
-                  className="w-16 h-900 object-contain" // Adjust height to match slot.jpg (900px assumed)
+                  className="w-16 h-900 object-contain" 
                 />
               </div>
             </div>
@@ -381,7 +395,7 @@ const SlotMachine = () => {
 
         <div className="flex justify-center space-x-4">
           <Button
-            onClick={() => setBet(MAX_BET)}
+            onClick={setMaxBet}
             disabled={isSpinning}
             className="bg-slot-purple hover:bg-purple-700 text-white"
           >
@@ -399,27 +413,5 @@ const SlotMachine = () => {
     </div>
   );
 };
-
-// Add to your CSS (e.g., index.css or SlotMachine.css) or tailwind.config.js
-const styles = `
-  @keyframes spin {
-    0% { transform: translateY(0); }
-    100% { transform: translateY(-900px); } /* Adjust based on slot.jpg height (900px assumed) */
-  }
-
-  @keyframes stop {
-    0% { transform: translateY(-900px); }
-    100% { transform: translateY(outcomePosition); } /* Calculated via JS for symbol alignment */
-  }
-
-  .spinning-grid {
-    animation: spin 2s linear infinite;
-    filter: blur(2px);
-  }
-
-  .stopped-grid {
-    animation: stop 0.5s ease-out forwards;
-  }
-`;
 
 export default SlotMachine;
