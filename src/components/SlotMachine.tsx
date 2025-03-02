@@ -303,27 +303,7 @@ const SlotMachine = () => {
             });
           }
         } else {
-          let multiplier = 0;
-          
-          switch (winningSymbol.name) {
-            case "RGCV":
-              multiplier = 5;
-              break;
-            case "π":
-              multiplier = 2;
-              break;
-            case "Pi":
-              multiplier = 3;
-              break;
-            case "3.14":
-              multiplier = 2;
-              break;
-            case "GCV":
-              multiplier = 10;
-              break;
-            default:
-              multiplier = winningSymbol.multiplier;
-          }
+          const multiplier = winningSymbol.multiplier;
 
           if (multiplier > 0) {
             const winAmount = effectiveBet * multiplier;
