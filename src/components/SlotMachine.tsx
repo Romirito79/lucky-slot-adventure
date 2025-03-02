@@ -13,14 +13,14 @@ interface SlotSymbol {
 
 const SYMBOLS: SlotSymbol[] = [
   { id: 0, imageUrl: "", isJackpot: false, name: "RGCV", multiplier: 5 }, // Position 0 in slot.jpg, wins 5x
-  { id: 1, imageUrl: "", isJackpot: true, name: "π", multiplier: 0 }, // Position 1 in slot.jpg, Jackpot
+  { id: 1, imageUrl: "", isJackpot: true, name: "π", multiplier: 2 }, // Position 1 in slot.jpg, Jackpot + wins 2x
   { id: 2, imageUrl: "", isJackpot: false, name: "3.14", multiplier: 2 }, // Position 2 in slot.jpg, wins 2x
   { id: 3, imageUrl: "", isJackpot: false, name: "GCV", multiplier: 10 }, // Position 3 in slot.jpg, wins 10x
   { id: 4, imageUrl: "", isJackpot: true, name: "Jackpot", multiplier: 0 }, // Position 4 in slot.jpg, Jackpot
   { id: 5, imageUrl: "", isJackpot: false, name: "3.14", multiplier: 2 }, // Position 5 in slot.jpg, wins 2x
-  { id: 6, imageUrl: "", isJackpot: true, name: "π", multiplier: 0 }, // Position 6 in slot.jpg, Jackpot
+  { id: 6, imageUrl: "", isJackpot: true, name: "π", multiplier: 2 }, // Position 6 in slot.jpg, Jackpot + wins 2x
   { id: 7, imageUrl: "", isJackpot: false, name: "Pi", multiplier: 3 }, // Position 7 in slot.jpg, wins 3x (Pi Network symbol)
-  { id: 8, imageUrl: "", isJackpot: true, name: "π", multiplier: 0 }, // Position 8 in slot.jpg, Jackpot
+  { id: 8, imageUrl: "", isJackpot: true, name: "π", multiplier: 2 }, // Position 8 in slot.jpg, Jackpot + wins 2x
 ];
 
 const FALLBACK_SYMBOL: SlotSymbol = { 
@@ -275,107 +275,79 @@ const SlotMachine = () => {
 
     if (allMatch) {
       const winningSymbolIndex = middleRowIndices[0];
-      const winningSymbol = SYMBOLS[winningSymbolIndex];
-      const effectiveBet = bet * 0.9;
+      
+      if (winningSymbolIndex !== undefined && Number.isInteger(winningSymbolIndex) && winningSymbolIndex >= 0 && winningSymbolIndex < SYMBOLS.length) {
+        const winningSymbol = SYMBOLS[winningSymbolIndex];
+        const effectiveBet = bet * 0.9;
 
-      if (winningSymbol.isJackpot) {
-        if (!lastJackpotWin || new Date().getUTCDate() !== lastJackpotWin.getUTCDate()) {
-          const winAmount = jackpotAmount;
-          setCredit(prev => prev + winAmount);
-          setMessage(`JACKPOT! +${winAmount.toFixed(2)} Pi`);
-          playJackpotSound();
-          toast({
-            title: "🎰 JACKPOT WIN! 🎰",
-            description: `You won ${winAmount.toFixed(2)} Pi from the jackpot!`,
-            className: "bg-slot-purple text-white",
-          });
-          setJackpotAmount(INITIAL_JACKPOT);
-          setLastJackpotWin(new Date());
-          localStorage.setItem('lastJackpotWin', new Date().toISOString());
+        if (winningSymbol.isJackpot) {
+          if (!lastJackpotWin || new Date().getUTCDate() !== lastJackpotWin.getUTCDate()) {
+            const winAmount = jackpotAmount;
+            setCredit(prev => prev + winAmount);
+            setMessage(`JACKPOT! +${winAmount.toFixed(2)} Pi`);
+            playJackpotSound();
+            toast({
+              title: "🎰 JACKPOT WIN! 🎰",
+              description: `You won ${winAmount.toFixed(2)} Pi from the jackpot!`,
+              className: "bg-slot-purple text-white",
+            });
+            setJackpotAmount(INITIAL_JACKPOT);
+            setLastJackpotWin(new Date());
+            localStorage.setItem('lastJackpotWin', new Date().toISOString());
+          } else {
+            setMessage("Jackpot already won today! Try again tomorrow.");
+            toast({
+              title: "Jackpot Unavailable",
+              description: "Only one jackpot win allowed per day.",
+              variant: "destructive",
+            });
+          }
         } else {
-          setMessage("Jackpot already won today! Try again tomorrow.");
-          toast({
-            title: "Jackpot Unavailable",
-            description: "Only one jackpot win allowed per day.",
-            variant: "destructive",
-          });
-        }
-      } else {
-        let multiplier = winningSymbol.multiplier;
-        
-        switch (winningSymbol.name) {
-          case "RGCV":
-            multiplier = 5;
-            break;
-          case "Pi":
-            multiplier = 3;
-            break;
-          case "3.14":
-            multiplier = 2;
-            break;
-          case "GCV":
-            multiplier = 10;
-            break;
-        }
+          let multiplier = 0;
+          
+          switch (winningSymbol.name) {
+            case "RGCV":
+              multiplier = 5;
+              break;
+            case "π":
+              multiplier = 2;
+              break;
+            case "Pi":
+              multiplier = 3;
+              break;
+            case "3.14":
+              multiplier = 2;
+              break;
+            case "GCV":
+              multiplier = 10;
+              break;
+            default:
+              multiplier = winningSymbol.multiplier;
+          }
 
-        if (multiplier > 0) {
-          const winAmount = effectiveBet * multiplier;
-          setCredit(prev => prev + winAmount);
-          setMessage(`Winner! +${winAmount.toFixed(2)} Pi`);
-          toast({
-            title: "Winner!",
-            description: `You won ${winAmount.toFixed(2)} Pi! (${multiplier}x your bet)`,
-            className: "bg-slot-gold text-black",
-          });
-        } else {
-          setMessage("Try Again!");
-        }
-      }
-      setWinClass("win2");
-    } else {
-      const firstMatch = middleRowIndices[0] === middleRowIndices[1];
-      const secondMatch = middleRowIndices[1] === middleRowIndices[2];
-
-      if (firstMatch || secondMatch) {
-        setWinClass("win1");
-        const matchingReels = firstMatch ? [0, 1] : [1, 2];
-        const matchingSymbolIndex = middleRowIndices[matchingReels[0]];
-        const winningSymbol = SYMBOLS[matchingSymbolIndex];
-        
-        let multiplier = winningSymbol.multiplier;
-        
-        switch (winningSymbol.name) {
-          case "RGCV":
-            multiplier = 5;
-            break;
-          case "Pi":
-            multiplier = 3;
-            break;
-          case "3.14":
-            multiplier = 2;
-            break;
-          case "GCV":
-            multiplier = 10;
-            break;
-        }
-
-        if (multiplier > 0) {
-          const effectiveBet = bet * 0.9;
-          const winAmount = (effectiveBet * multiplier) / 2;
-          setCredit(prev => prev + winAmount);
-          setMessage(`Partial Win! +${winAmount.toFixed(2)} Pi`);
-          toast({
-            title: "Partial Win!",
-            description: `You won ${winAmount.toFixed(2)} Pi!`,
-            className: "bg-slot-orange text-black",
-          });
-        } else {
-          setMessage("Try Again!");
+          if (multiplier > 0) {
+            const winAmount = effectiveBet * multiplier;
+            setCredit(prev => prev + winAmount);
+            setMessage(`Winner! +${winAmount.toFixed(2)} Pi`);
+            toast({
+              title: "Winner!",
+              description: `You won ${winAmount.toFixed(2)} Pi! (${multiplier}x your bet)`,
+              className: "bg-slot-gold text-black",
+            });
+            setWinClass("win2");
+          } else {
+            setMessage("Try Again!");
+            setWinClass("");
+          }
         }
       } else {
         setMessage("Try Again!");
         setWinClass("");
+        console.error("Invalid symbol index:", winningSymbolIndex);
       }
+    } else {
+      setMessage("Try Again!");
+      setWinClass("");
     }
   };
 
@@ -423,6 +395,7 @@ const SlotMachine = () => {
               style={{
                 backgroundImage: "url(/images/slot.jpg)",
                 backgroundPosition: "0 0",
+                backgroundSize: "79px auto",
                 backgroundRepeat: "repeat-y"
               }}
             >
