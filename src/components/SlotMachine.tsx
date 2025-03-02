@@ -2,6 +2,7 @@
 import { useSlotMachine } from '@/hooks/useSlotMachine';
 import SlotReel from './slots/SlotReel';
 import BetControls from './slots/BetControls';
+import { Button } from '@/components/ui/button';
 
 const SlotMachine = () => {
   const {
@@ -12,6 +13,7 @@ const SlotMachine = () => {
     spinResults,
     message,
     winClass,
+    isPiUser,
     spin,
     adjustBet,
     setMinBet,
@@ -22,6 +24,12 @@ const SlotMachine = () => {
   return (
     <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-br from-gray-500 to-gray-300 p-4">
       <div className="bg-white rounded-lg shadow-2xl p-6 w-full max-w-2xl">
+        {isPiUser && (
+          <div className="mb-4 p-2 bg-slot-purple text-white text-center rounded-md">
+            Connected to Pi Network
+          </div>
+        )}
+        
         <div className="flex justify-between mb-4">
           <div className="text-2xl font-bold text-center bg-slot-red text-white py-2 px-4 rounded-md animate-shine flex-1 mr-2">
             Pi Balance: {credit.toFixed(2)} Pi

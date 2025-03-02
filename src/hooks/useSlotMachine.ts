@@ -13,6 +13,7 @@ import {
 } from '@/utils/slotMachineConfig';
 import { generateNewSeed, generateOutcomes } from '@/utils/provablyFair';
 import { soundService } from '@/services/SoundService';
+import { piNetworkService } from '@/services/PiNetworkService';
 
 export const useSlotMachine = () => {
   const { toast } = useToast();
@@ -33,10 +34,31 @@ export const useSlotMachine = () => {
   const [reelAnimationsCompleted, setReelAnimationsCompleted] = useState<Record<number, boolean>>({
     0: false, 1: false, 2: false
   });
+  const [isPiUser, setIsPiUser] = useState(false);
 
   // Initialize on first load
   useEffect(() => {
     soundService.initialize();
+    
+    // Initialize Pi Network
+    const initializePiNetwork = async () => {
+      try {
+        const isPiNetworkUser = await piNetworkService.initialize();
+        setIsPiUser(isPiNetworkUser);
+        if (isPiNetworkUser) {
+          toast({
+            title: "Pi Network Connected",
+            description: "You're playing using your Pi Network account",
+            className: "bg-slot-purple text-white",
+          });
+        }
+      } catch (error) {
+        console.error("Failed to initialize Pi Network:", error);
+      }
+    };
+    
+    initializePiNetwork();
+    
     const slotImage = new Image();
     slotImage.src = '/images/slot.jpg';
     slotImage.onload = () => {
@@ -104,17 +126,34 @@ export const useSlotMachine = () => {
   };
 
   const checkWin = () => {
-    const middleRowIndices = spinResults.map(reel => reel[1]);
+    // Get middle row (index 1) for each reel
+    if (!spinResults || spinResults.length !== 3) {
+      console.error("Invalid spin results:", spinResults);
+      return;
+    }
     
-    console.log("Middle row indices:", middleRowIndices);
+    console.log("Checking win with spin results:", spinResults);
     
-    const allMatch = middleRowIndices[0] === middleRowIndices[1] && middleRowIndices[1] === middleRowIndices[2];
+    // Extract the middle row from each reel (index 1)
+    const middleRow = [
+      spinResults[0][1],
+      spinResults[1][1],
+      spinResults[2][1]
+    ];
+    
+    console.log("Middle row to check:", middleRow);
+    
+    // Check if all symbols in the middle row are the same
+    const allMatch = middleRow[0] === middleRow[1] && middleRow[1] === middleRow[2];
+    console.log("All match?", allMatch);
 
     if (allMatch) {
-      const winningSymbolIndex = middleRowIndices[0];
+      const winningSymbolIndex = middleRow[0];
+      console.log("Winning symbol index:", winningSymbolIndex);
       
       if (winningSymbolIndex !== undefined && Number.isInteger(winningSymbolIndex) && winningSymbolIndex >= 0 && winningSymbolIndex < SYMBOLS.length) {
         const winningSymbol = SYMBOLS[winningSymbolIndex];
+        console.log("Winning symbol:", winningSymbol);
         const effectiveBet = bet * 0.9;
 
         if (winningSymbol.isJackpot) {
@@ -131,6 +170,7 @@ export const useSlotMachine = () => {
             setJackpotAmount(INITIAL_JACKPOT);
             setLastJackpotWin(new Date());
             localStorage.setItem('lastJackpotWin', new Date().toISOString());
+            setWinClass("win2");
           } else {
             setMessage("Jackpot already won today! Try again tomorrow.");
             toast({
@@ -193,6 +233,7 @@ export const useSlotMachine = () => {
     soundService.playSpinningSound();
     
     const outcomes = generateOutcomes(seed);
+    console.log("Generated spin outcomes:", outcomes);
     setSpinResults(outcomes);
   };
 
@@ -221,6 +262,7 @@ export const useSlotMachine = () => {
     spinResults,
     message,
     winClass,
+    isPiUser,
     spin,
     adjustBet,
     setMinBet,
