@@ -17,6 +17,7 @@ export const generateOutcomes = (seed: string, numReels: number = 3, numPosition
 
   const results: number[][] = [];
   
+  // We generate the outcomes per reel
   for (let reel = 0; reel < numReels; reel++) {
     const reelResult: number[] = [];
     for (let pos = 0; pos < numPositions; pos++) {

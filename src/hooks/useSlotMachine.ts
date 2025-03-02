@@ -126,7 +126,7 @@ export const useSlotMachine = () => {
   };
 
   const checkWin = () => {
-    // Get middle row (index 1) for each reel
+    // Validate spin results
     if (!spinResults || spinResults.length !== 3) {
       console.error("Invalid spin results:", spinResults);
       return;
@@ -134,11 +134,11 @@ export const useSlotMachine = () => {
     
     console.log("Checking win with spin results:", spinResults);
     
-    // Extract the middle row from each reel (index 1)
+    // Extract the middle row (index 1) from each reel
     const middleRow = [
-      spinResults[0][1],
-      spinResults[1][1],
-      spinResults[2][1]
+      spinResults[0][1], // Middle symbol of first reel
+      spinResults[1][1], // Middle symbol of second reel
+      spinResults[2][1]  // Middle symbol of third reel
     ];
     
     console.log("Middle row to check:", middleRow);
@@ -151,11 +151,16 @@ export const useSlotMachine = () => {
       const winningSymbolIndex = middleRow[0];
       console.log("Winning symbol index:", winningSymbolIndex);
       
-      if (winningSymbolIndex !== undefined && Number.isInteger(winningSymbolIndex) && winningSymbolIndex >= 0 && winningSymbolIndex < SYMBOLS.length) {
+      if (winningSymbolIndex !== undefined && 
+          Number.isInteger(winningSymbolIndex) && 
+          winningSymbolIndex >= 0 && 
+          winningSymbolIndex < SYMBOLS.length) {
+        
         const winningSymbol = SYMBOLS[winningSymbolIndex];
         console.log("Winning symbol:", winningSymbol);
-        const effectiveBet = bet * 0.9;
-
+        const effectiveBet = bet * 0.9; // Accounting for house edge
+        
+        // Handle jackpot win
         if (winningSymbol.isJackpot) {
           if (!lastJackpotWin || new Date().getUTCDate() !== lastJackpotWin.getUTCDate()) {
             const winAmount = jackpotAmount;
@@ -179,23 +184,21 @@ export const useSlotMachine = () => {
               variant: "destructive",
             });
           }
-        } else {
+        } else if (winningSymbol.multiplier > 0) {
+          // Handle regular win with multiplier
           const multiplier = winningSymbol.multiplier;
-
-          if (multiplier > 0) {
-            const winAmount = effectiveBet * multiplier;
-            setCredit(prev => prev + winAmount);
-            setMessage(`Winner! +${winAmount.toFixed(2)} Pi`);
-            toast({
-              title: "Winner!",
-              description: `You won ${winAmount.toFixed(2)} Pi! (${multiplier}x your bet)`,
-              className: "bg-slot-gold text-black",
-            });
-            setWinClass("win2");
-          } else {
-            setMessage("Try Again!");
-            setWinClass("");
-          }
+          const winAmount = effectiveBet * multiplier;
+          setCredit(prev => prev + winAmount);
+          setMessage(`Winner! +${winAmount.toFixed(2)} Pi`);
+          toast({
+            title: "Winner!",
+            description: `You won ${winAmount.toFixed(2)} Pi! (${multiplier}x your bet)`,
+            className: "bg-slot-gold text-black",
+          });
+          setWinClass("win2");
+        } else {
+          setMessage("Try Again!");
+          setWinClass("");
         }
       } else {
         setMessage("Try Again!");
@@ -232,6 +235,7 @@ export const useSlotMachine = () => {
     setIsSpinning(true);
     soundService.playSpinningSound();
     
+    // Generate spin outcomes using provably fair algorithm
     const outcomes = generateOutcomes(seed);
     console.log("Generated spin outcomes:", outcomes);
     setSpinResults(outcomes);
