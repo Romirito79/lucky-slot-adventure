@@ -8,15 +8,15 @@ export interface SlotSymbol {
 }
 
 export const SYMBOLS: SlotSymbol[] = [
-  { id: 0, imageUrl: "", isJackpot: false, name: "RGCV", multiplier: 5 }, // Position 0 in slot.jpg, wins 5x
-  { id: 1, imageUrl: "", isJackpot: true, name: "π", multiplier: 2 }, // Position 1 in slot.jpg, Jackpot + wins 2x
-  { id: 2, imageUrl: "", isJackpot: false, name: "3.14", multiplier: 2 }, // Position 2 in slot.jpg, wins 2x
-  { id: 3, imageUrl: "", isJackpot: false, name: "GCV", multiplier: 10 }, // Position 3 in slot.jpg, wins 10x
-  { id: 4, imageUrl: "", isJackpot: true, name: "Jackpot", multiplier: 0 }, // Position 4 in slot.jpg, Jackpot
-  { id: 5, imageUrl: "", isJackpot: false, name: "3.14", multiplier: 2 }, // Position 5 in slot.jpg, wins 2x
-  { id: 6, imageUrl: "", isJackpot: true, name: "π", multiplier: 2 }, // Position 6 in slot.jpg, Jackpot + wins 2x
-  { id: 7, imageUrl: "", isJackpot: false, name: "Pi", multiplier: 3 }, // Position 7 in slot.jpg, wins 3x (Pi Network symbol)
-  { id: 8, imageUrl: "", isJackpot: true, name: "π", multiplier: 2 }, // Position 8 in slot.jpg, Jackpot + wins 2x
+  { id: 0, imageUrl: "/images/rgcv.png", isJackpot: false, name: "RGCV", multiplier: 5 }, // Position 0 in slot.jpg, wins 5x
+  { id: 1, imageUrl: "/images/pi-coin.png", isJackpot: true, name: "π", multiplier: 2 }, // Position 1 in slot.jpg, Jackpot + wins 2x
+  { id: 2, imageUrl: "/images/3.14.png", isJackpot: false, name: "3.14", multiplier: 2 }, // Position 2 in slot.jpg, wins 2x
+  { id: 3, imageUrl: "/images/gcv.png", isJackpot: false, name: "GCV", multiplier: 10 }, // Position 3 in slot.jpg, wins 10x
+  { id: 4, imageUrl: "/images/Jackpot.png", isJackpot: true, name: "Jackpot", multiplier: 0 }, // Position 4 in slot.jpg, Jackpot
+  { id: 5, imageUrl: "/images/3.14.png", isJackpot: false, name: "3.14", multiplier: 2 }, // Position 5 in slot.jpg, wins 2x
+  { id: 6, imageUrl: "/images/pi-coin.png", isJackpot: true, name: "π", multiplier: 2 }, // Position 6 in slot.jpg, Jackpot + wins 2x
+  { id: 7, imageUrl: "/images/pi-symbol.png", isJackpot: false, name: "Pi", multiplier: 3 }, // Position 7 in slot.jpg, wins 3x (Pi Network symbol)
+  { id: 8, imageUrl: "/images/pi-coin.png", isJackpot: true, name: "π", multiplier: 2 }, // Position 8 in slot.jpg, Jackpot + wins 2x
 ];
 
 export const FALLBACK_SYMBOL: SlotSymbol = { 

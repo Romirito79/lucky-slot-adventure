@@ -18,7 +18,7 @@ const BetControls = ({ bet, isSpinning, onBetChange, onSetMinBet, onSetMaxBet, o
         <Button
           variant="outline"
           onClick={() => onBetChange(-0.5)}
-          disabled={isSpinning}
+          disabled={isSpinning || bet <= MIN_BET}
           className="w-24"
         >
           -0.5
@@ -27,7 +27,7 @@ const BetControls = ({ bet, isSpinning, onBetChange, onSetMinBet, onSetMaxBet, o
         <Button
           variant="outline"
           onClick={() => onBetChange(0.5)}
-          disabled={isSpinning}
+          disabled={isSpinning || bet >= MAX_BET}
           className="w-24"
         >
           +0.5

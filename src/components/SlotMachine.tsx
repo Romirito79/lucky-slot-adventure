@@ -3,6 +3,7 @@ import { useSlotMachine } from '@/hooks/useSlotMachine';
 import SlotReel from './slots/SlotReel';
 import BetControls from './slots/BetControls';
 import { Button } from '@/components/ui/button';
+import { SYMBOLS } from '@/utils/slotMachineConfig';
 
 const SlotMachine = () => {
   const {
@@ -68,6 +69,28 @@ const SlotMachine = () => {
           onSetMaxBet={setMaxBet}
           onSpin={spin}
         />
+
+        <div className="mt-6 border-t pt-4">
+          <h3 className="text-lg font-bold mb-2">Symbol Values:</h3>
+          <div className="grid grid-cols-3 gap-2">
+            {SYMBOLS.map(symbol => (
+              <div key={symbol.id} className="flex items-center space-x-2 bg-gray-100 p-2 rounded">
+                <img 
+                  src={symbol.imageUrl} 
+                  alt={symbol.name} 
+                  className="w-8 h-8 object-contain" 
+                />
+                <div className="text-xs">
+                  <div className="font-bold">{symbol.name}</div>
+                  <div>
+                    {symbol.isJackpot ? "Jackpot" : ""}
+                    {symbol.multiplier > 0 ? ` ${symbol.multiplier}x` : ""}
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
       </div>
     </div>
   );
